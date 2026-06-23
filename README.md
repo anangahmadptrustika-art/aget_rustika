@@ -1,10 +1,14 @@
-# Ruang Kendali Agent 🤖
+# Rustika · Ops Center 3D 🤖
 
-Web animasi bergaya **kantor**: sebuah ruangan dengan dinding, jendela, dan lantai,
-berisi beberapa **agent** (karakter robot) yang **berjalan bolak-balik** di depan
-mejanya masing-masing — menjaga server, cek update, memantau online/offline, backup,
-keamanan, dan cache. Bisa jalan dengan data **simulasi** (langsung hidup tanpa setup)
-atau dihubungkan ke **data nyata** web app kamu lewat `fetch`.
+Kantor **3D** (gaya "The Sims") berisi 6 **agent** AI berwarna-warni yang
+**berjalan & bekerja** di sebuah ruangan: menjaga server, cek update, memantau
+online/offline, backup, keamanan, dan cache. Dibangun dengan **Three.js (WebGL)** —
+kamera bisa **diputar (drag)** dan **zoom (scroll)**. Panel kanan menampilkan metrik,
+status layanan, dan log aktivitas. Bisa jalan dengan data **simulasi** (langsung
+hidup tanpa setup) atau dihubungkan ke **data nyata** web app kamu lewat `fetch`.
+
+> Three.js dimuat dari CDN (jsDelivr), jadi halaman butuh koneksi internet saat dibuka.
+> Tetap berupa file statis — aman di-deploy ke Vercel/hosting statik mana pun.
 
 ## Para Agent
 
@@ -87,14 +91,18 @@ Selang polling tiap agent dan timeout fetch juga bisa diatur di `config.js`
 ## Struktur
 
 ```
-index.html   — scene kantor: dinding, lantai, furnitur (meja/server), & para agent
-styles.css   — gaya kantor + animasi jalan (kaki berayun) + furnitur
+index.html   — HUD overlay (panel, kartu metrik, gelembung) + mount canvas 3D
+styles.css   — tema terang HUD + gelembung + panel
+scene.js     — scene 3D Three.js: ruangan, perabot, & karakter agent berjalan
 config.js    — KONFIGURASI: hubungkan ke data nyata (edit di sini)
-app.js       — logika: fetch data asli + fallback simulasi + log + mesin gerak agent
+app.js       — logika data: fetch asli + fallback simulasi + log (mengisi window.AGENT_STATE)
 ```
 
-Para agent berjalan memakai mesin gerak ringan (`requestAnimationFrame`): tiap
-agent berjalan ke mejanya → bekerja sebentar → mondar-mandir → kembali, berulang.
+`scene.js` membaca `window.AGENT_STATE` (diisi `app.js`) untuk mengatur teks
+gelembung dan ekspresi/mood tiap karakter 3D. Tiap agent berjalan ke area kerjanya →
+bekerja sebentar → berkeliling → kembali, terus-menerus.
+
+**Kontrol kamera:** seret untuk memutar, scroll untuk zoom.
 
 Animasi otomatis dimatikan untuk pengguna yang mengaktifkan
 `prefers-reduced-motion`.
