@@ -44,6 +44,7 @@
       <div class="console">
         <div class="console-title">
           <span class="status-dot" data-state="ok"></span> Penjaga Server
+          <span class="src" id="src-server">SIM</span>
         </div>
         <div class="server-rack">
           <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
@@ -87,6 +88,7 @@
       <div class="console">
         <div class="console-title">
           <span class="status-dot" data-state="busy"></span> Pemeriksa Update
+          <span class="src" id="src-update">SIM</span>
         </div>
         <div class="update-ring">
           <svg viewBox="0 0 120 120">
@@ -124,6 +126,7 @@
       <div class="console">
         <div class="console-title">
           <span class="status-dot" data-state="ok"></span> Pemantau Status
+          <span class="src" id="src-status">SIM</span>
         </div>
         <ul class="service-list" id="service-list">
           <!-- diisi oleh JS -->
@@ -152,6 +155,7 @@
       <div class="console">
         <div class="console-title">
           <span class="status-dot" data-state="busy"></span> Petugas Backup
+          <span class="src" id="src-backup">SIM</span>
         </div>
         <div class="files" id="backup-files">
           <span class="file"></span><span class="file"></span><span class="file"></span>
@@ -161,6 +165,79 @@
           <label>Backup</label>
           <div class="bar"><i id="backup-bar"></i></div>
           <span class="val" id="backup-val">0%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- AGENT 5: Penjaga Keamanan -->
+    <section class="station" data-agent="security">
+      <div class="bubble" id="bubble-security">Memindai ancaman…</div>
+      <div class="agent" data-mood="busy">
+        <div class="agent-body">
+          <span class="antenna"></span>
+          <div class="head">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="mouth"></span>
+          </div>
+          <div class="torso">
+            <span class="badge">🔒</span>
+            <span class="arm left"></span>
+            <span class="arm right typing"></span>
+          </div>
+        </div>
+      </div>
+      <div class="console">
+        <div class="console-title">
+          <span class="status-dot" data-state="busy"></span> Penjaga Keamanan
+          <span class="src" id="src-security">SIM</span>
+        </div>
+        <div class="scanner" id="scanner">
+          <span class="scan-line"></span>
+          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+        </div>
+        <div class="sec-stats">
+          <div><span class="num" id="sec-blocked">0</span><label>diblokir</label></div>
+          <div><span class="num" id="sec-active">0</span><label>ancaman aktif</label></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AGENT 6: Pembersih Cache -->
+    <section class="station" data-agent="cache">
+      <div class="bubble" id="bubble-cache">Membersihkan cache…</div>
+      <div class="agent" data-mood="ok">
+        <div class="agent-body">
+          <span class="antenna"></span>
+          <div class="head">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="mouth"></span>
+          </div>
+          <div class="torso">
+            <span class="badge">🧹</span>
+            <span class="arm left typing"></span>
+            <span class="arm right typing"></span>
+          </div>
+        </div>
+      </div>
+      <div class="console">
+        <div class="console-title">
+          <span class="status-dot" data-state="ok"></span> Pembersih Cache
+          <span class="src" id="src-cache">SIM</span>
+        </div>
+        <div class="cache-blocks" id="cache-blocks">
+          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
+          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
+          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
+          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
+        </div>
+        <div class="cache-stats">
+          <div><span class="num" id="cache-size">0</span><label>MB cache</label></div>
+          <div><span class="num" id="cache-hit">0%</span><label>hit rate</label></div>
         </div>
       </div>
     </section>
@@ -179,6 +256,7 @@
     Visualisasi dekoratif — agent &amp; metrik disimulasikan di browser. Dibuat untuk dashboard web app kamu.
   </footer>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

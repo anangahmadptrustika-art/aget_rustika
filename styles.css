@@ -247,6 +247,17 @@ body {
   font-size: 14px; font-weight: 600;
   margin-bottom: 12px;
 }
+/* badge sumber data: LIVE / SIM / ERR */
+.src {
+  margin-left: auto;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 2px 7px; border-radius: 20px;
+  color: var(--muted); background: rgba(255,255,255,0.06);
+  border: 1px solid var(--panel-line);
+}
+.src[data-src="live"] { color: var(--ok);  background: rgba(52,211,153,0.15); }
+.src[data-src="sim"]  { color: var(--muted); }
+.src[data-src="err"]  { color: var(--bad); background: rgba(248,113,113,0.15); animation: pulse 0.8s infinite; }
 .status-dot {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--ok);
@@ -346,6 +357,81 @@ body {
 }
 .files .file.done { opacity: 1; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
 
+/* ---------- Penjaga Keamanan: scanner ---------- */
+.scanner {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 8px;
+  margin-bottom: 12px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.scanner .cell {
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(108,140,255,0.18);
+  animation: cell-scan 2.4s infinite;
+}
+.scanner .cell:nth-child(3n) { animation-delay: 0.3s; }
+.scanner .cell:nth-child(3n+1) { animation-delay: 0.6s; }
+@keyframes cell-scan {
+  0%, 100% { background: rgba(108,140,255,0.18); }
+  50% { background: rgba(52,211,153,0.45); }
+}
+.scanner .scan-line {
+  position: absolute; left: 0; right: 0; top: 0;
+  height: 24px;
+  background: linear-gradient(180deg, transparent, rgba(110,231,255,0.35), transparent);
+  animation: scan-move 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes scan-move {
+  0%, 100% { transform: translateY(-10px); }
+  50% { transform: translateY(110px); }
+}
+.station[data-agent="security"][data-alert="1"] .scanner .cell { animation: none; background: rgba(248,113,113,0.4); }
+
+.sec-stats, .cache-stats {
+  display: flex; gap: 10px;
+  text-align: center;
+}
+.sec-stats > div, .cache-stats > div {
+  flex: 1;
+  padding: 8px 4px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+}
+.sec-stats .num, .cache-stats .num {
+  display: block;
+  font-size: 19px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sec-stats label, .cache-stats label {
+  font-size: 10.5px; color: var(--muted);
+}
+
+/* ---------- Pembersih Cache: blok ---------- */
+.cache-blocks {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.cache-blocks .blk {
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(160deg, #4a5694, #2c3667);
+  transition: opacity 0.35s ease, transform 0.35s ease, background 0.35s ease;
+}
+.cache-blocks .blk.swept {
+  opacity: 0.12;
+  transform: scale(0.6);
+  background: rgba(255,255,255,0.08);
+}
+
 /* ---------- Log panel ---------- */
 .logpanel {
   max-width: 1280px;
@@ -399,6 +485,8 @@ body {
 .log .who.update { color: var(--busy); }
 .log .who.status { color: #8fb4ff; }
 .log .who.backup { color: var(--accent-2); }
+.log .who.security { color: #ff9aa8; }
+.log .who.cache { color: #7ee0ff; }
 .log .msg { color: var(--text); }
 .log .msg.bad { color: var(--bad); }
 
