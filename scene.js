@@ -19,13 +19,44 @@ const AGENTS = [
 const ROOM = { w: 9, d: 6 };
 const BOUNDS = { x0: 0.7, x1: 8.3, z0: 0.7, z1: 5.3 };
 
+function showFallback() {
+  const fb = document.getElementById("webgl-fallback");
+  if (fb) fb.hidden = false;
+}
+
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl") || c.getContext("experimental-webgl")));
+  } catch (e) { return false; }
+}
+
 function init() {
   const stage = document.getElementById("stage");
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  if (!hasWebGL()) { showFallback(); return; }
+
+  // failIfMajorPerformanceCaveat:false -> izinkan WebGL software (mis. di VM/remote
+  // desktop tanpa GPU) supaya scene tetap tampil walau lebih lambat.
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: false,
+    failIfMajorPerformanceCaveat: false,
+    powerPreference: "high-performance",
+  });
+
+  // Deteksi renderer software -> turunkan beban (matikan bayangan, pixelRatio 1).
+  let lowPerf = false;
+  try {
+    const gl = renderer.getContext();
+    const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+    const rname = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : "";
+    if (/swiftshader|software|llvmpipe|basic render|microsoft/i.test(rname)) lowPerf = true;
+  } catch (e) { /* abaikan */ }
+
+  renderer.setPixelRatio(lowPerf ? 1 : Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !lowPerf;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   stage.appendChild(renderer.domElement);
@@ -389,6 +420,5 @@ try {
   init();
 } catch (err) {
   console.error("Gagal memuat scene 3D:", err);
-  const fb = document.getElementById("webgl-fallback");
-  if (fb) fb.hidden = false;
+  showFallback();
 }

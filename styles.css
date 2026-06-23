@@ -26,11 +26,22 @@ body {
 #stage canvas { display: block; }
 
 #webgl-fallback {
-  position: fixed; inset: 0; z-index: 50;
+  position: fixed; inset: 0; z-index: 5;
   display: flex; align-items: center; justify-content: center;
-  text-align: center; color: var(--ink);
+  text-align: center; color: var(--ink); padding: 24px;
   background: linear-gradient(180deg, #dfe8fb, #f6f4ff);
 }
+#webgl-fallback .fb-card {
+  max-width: 440px;
+  padding: 26px 28px;
+  background: var(--glass-strong); border: 1px solid var(--line);
+  border-radius: 18px; box-shadow: var(--shadow); backdrop-filter: blur(8px);
+}
+#webgl-fallback h2 { margin: 0 0 10px; font-size: 20px; }
+#webgl-fallback p { margin: 8px 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+#webgl-fallback .fb-tip { font-size: 12.5px; color: var(--ink); background: rgba(91,124,255,0.08); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+#webgl-fallback button { margin-top: 14px; font: inherit; font-size: 13px; font-weight: 600; color: #fff; background: var(--accent); border: none; border-radius: 10px; padding: 9px 18px; cursor: pointer; }
+#webgl-fallback button:hover { background: #4a6bf0; }
 
 /* ---------- Top bar ---------- */
 .bar {

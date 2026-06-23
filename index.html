@@ -21,9 +21,12 @@
   <!-- Panggung 3D (canvas Three.js dipasang ke sini) -->
   <div id="stage"></div>
   <div id="webgl-fallback" hidden>
-    <div>
-      <h2>Browser tidak mendukung WebGL 😕</h2>
-      <p>Coba buka di browser modern (Chrome/Edge/Safari/Firefox terbaru).</p>
+    <div class="fb-card">
+      <h2>Mode 3D belum aktif 🖥️</h2>
+      <p>Browser belum bisa memakai <b>WebGL</b> (akselerasi grafis). Data &amp; monitoring di panel kanan tetap berjalan normal.</p>
+      <p class="fb-tip"><b>Aktifkan di Edge / Chrome:</b><br>
+        Settings → <i>System and performance</i> → nyalakan <b>“Use hardware acceleration when available”</b> → tutup &amp; buka ulang browser.</p>
+      <button type="button" onclick="location.reload()">↻ Muat ulang</button>
     </div>
   </div>
 
