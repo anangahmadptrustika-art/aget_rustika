@@ -105,11 +105,11 @@
 
   /* ---------- Helper UI ---------- */
   function setAgentMood(a, mood) {
-    const el = document.querySelector(`.station[data-agent="${a}"] .agent`);
+    const el = document.querySelector(`.worker[data-agent="${a}"]`);
     if (el) el.dataset.mood = mood;
   }
   function setStatusDot(a, state) {
-    const dot = document.querySelector(`.station[data-agent="${a}"] .console-title .status-dot`);
+    const dot = document.querySelector(`.furniture[data-agent="${a}"] .status-dot`);
     if (dot) dot.dataset.state = state;
   }
   function setBubble(id, text) { const b = $(id); if (b) b.textContent = text; }
@@ -383,7 +383,7 @@
      endpoint: { blocked, activeThreats, lastScan }
      ================================================================ */
   (() => {
-    const station = document.querySelector('.station[data-agent="security"]');
+    const station = document.querySelector('.furniture[data-agent="security"]');
     const blockedEl = $("#sec-blocked"), activeEl = $("#sec-active");
     const url = EP.security;
     let blocked = rand(120, 320), active = 0;
@@ -478,6 +478,90 @@
       simulate(); apply("sim");
     }
     runLoop(step, POLL.cache || 2200);
+  })();
+
+  /* ================================================================
+     MESIN GERAK — tiap agent berjalan bolak-balik di depan mejanya:
+     berjalan ke meja -> bekerja sebentar -> menjauh -> kembali, dst.
+     ================================================================ */
+  (() => {
+    const office = document.getElementById("office");
+    const workers = Array.from(document.querySelectorAll(".worker"));
+    if (!office || !workers.length) return;
+
+    // Ambil posisi (persen) tiap meja dari furnitur.
+    const deskX = {};
+    document.querySelectorAll(".furniture[data-agent]").forEach((f) => {
+      deskX[f.dataset.agent] = parseFloat(f.style.left) || 50;
+    });
+
+    const state = workers.map((el) => {
+      const agent = el.dataset.agent;
+      const home = deskX[agent] != null ? deskX[agent] : 50;
+      // Sisi mondar-mandir; meja di tepi mengarah ke tengah agar tidak mentok.
+      let side = Math.random() < 0.5 ? -1 : 1;
+      if (home > 85) side = -1; else if (home < 15) side = 1;
+      const workX = clamp(home + side * 4, 4, 96);              // titik kerja (samping meja)
+      let strollX = clamp(home + side * rand(9, 15), 4, 96);    // titik mondar-mandir
+      if (Math.abs(strollX - workX) < 3) strollX = clamp(workX + (workX > 50 ? -10 : 10), 4, 96);
+      return {
+        el, home, workX, strollX,
+        x: workX, target: strollX, goingToWork: false,
+        speed: 6 + Math.random() * 4, facing: 1,
+        mode: "walk", restT: 0,
+      };
+    });
+
+    // Tempatkan posisi awal.
+    for (const s of state) {
+      s.el.style.left = s.x.toFixed(2) + "%";
+      s.el.dataset.facing = "right";
+      s.el.classList.add("working");
+    }
+
+    // Hormati prefers-reduced-motion: diam saja di meja.
+    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      for (const s of state) {
+        if (s.mode === "rest") {
+          s.restT -= dt;
+          if (s.restT <= 0) {
+            s.mode = "walk";
+            s.target = s.goingToWork ? s.workX : s.strollX;
+          }
+          continue;
+        }
+        // berjalan menuju target
+        const dir = s.target > s.x ? 1 : -1;
+        s.facing = dir;
+        s.x += dir * s.speed * dt;
+        const arrived = (dir > 0 && s.x >= s.target) || (dir < 0 && s.x <= s.target);
+        if (arrived) {
+          s.x = s.target;
+          if (s.target === s.workX) {
+            // sampai di meja -> bekerja, menghadap meja
+            s.mode = "rest"; s.restT = 2.4 + Math.random() * 3.2; s.goingToWork = false;
+            s.facing = s.home >= s.x ? 1 : -1;
+            s.el.classList.remove("walking"); s.el.classList.add("working");
+          } else {
+            // sampai di titik mondar-mandir -> jeda singkat lalu balik
+            s.mode = "rest"; s.restT = 0.5 + Math.random() * 1.3; s.goingToWork = true;
+            s.el.classList.remove("walking"); s.el.classList.remove("working");
+          }
+        } else {
+          s.el.classList.add("walking"); s.el.classList.remove("working");
+        }
+        s.el.style.left = s.x.toFixed(2) + "%";
+        s.el.dataset.facing = s.facing < 0 ? "left" : "right";
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   })();
 
   /* ---------- Sapaan awal ---------- */

@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ruang Kendali Agent · Animasi</title>
-  <meta name="description" content="Visualisasi animasi para agent yang sedang bekerja: jaga server, cek update, pantau online/offline, dan backup." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <title>Ruang Kendali Agent · Kantor</title>
+  <meta name="description" content="Kantor para agent AI: jalan bolak-balik menjaga server, cek update, pantau online/offline, backup, keamanan, dan cache." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -17,231 +16,177 @@
       <h1>Ruang Kendali Agent</h1>
     </div>
     <div class="topbar-meta">
-      <div class="clock" id="clock">--:--:--</div>
-      <div class="uptime">Uptime sistem: <span id="uptime">0d 00:00:00</span></div>
+      <div class="uptime">Uptime: <span id="uptime">0d 00:00:00</span></div>
     </div>
   </header>
 
-  <main class="floor">
-    <!-- AGENT 1: Penjaga Server -->
-    <section class="station" data-agent="server">
-      <div class="bubble" id="bubble-server">Memantau beban server…</div>
-      <div class="agent" data-mood="ok">
-        <div class="agent-body">
-          <span class="antenna"></span>
-          <div class="head">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="mouth"></span>
-          </div>
-          <div class="torso">
-            <span class="badge">🛡️</span>
-            <span class="arm left"></span>
-            <span class="arm right"></span>
-          </div>
-        </div>
-      </div>
-      <div class="console">
-        <div class="console-title">
-          <span class="status-dot" data-state="ok"></span> Penjaga Server
-          <span class="src" id="src-server">SIM</span>
-        </div>
-        <div class="server-rack">
-          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
-          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
-          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
-          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
-        </div>
-        <div class="metrics">
-          <div class="metric">
-            <label>CPU</label>
-            <div class="bar"><i id="cpu-bar"></i></div>
-            <span class="val" id="cpu-val">0%</span>
-          </div>
-          <div class="metric">
-            <label>RAM</label>
-            <div class="bar"><i id="ram-bar"></i></div>
-            <span class="val" id="ram-val">0%</span>
-          </div>
-        </div>
-      </div>
-    </section>
+  <!-- ============ SCENE KANTOR ============ -->
+  <div class="office-scroll">
+  <div class="office" id="office">
 
-    <!-- AGENT 2: Pemeriksa Update -->
-    <section class="station" data-agent="update">
-      <div class="bubble" id="bubble-update">Mencari pembaruan…</div>
-      <div class="agent" data-mood="busy">
-        <div class="agent-body">
-          <span class="antenna"></span>
-          <div class="head">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="mouth"></span>
-          </div>
-          <div class="torso">
-            <span class="badge">🔄</span>
-            <span class="arm left typing"></span>
-            <span class="arm right typing"></span>
-          </div>
-        </div>
-      </div>
-      <div class="console">
-        <div class="console-title">
-          <span class="status-dot" data-state="busy"></span> Pemeriksa Update
-          <span class="src" id="src-update">SIM</span>
-        </div>
-        <div class="update-ring">
-          <svg viewBox="0 0 120 120">
-            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
-            <circle class="ring-fg" id="update-ring" cx="60" cy="60" r="52"></circle>
-          </svg>
-          <div class="ring-label"><span id="update-pct">0</span>%</div>
-        </div>
-        <div class="version-line">
-          versi <span id="version-now">v1.0.0</span>
-          <span class="arrow">→</span>
-          <span id="version-next">v1.0.1</span>
-        </div>
-      </div>
-    </section>
+    <!-- Dinding belakang -->
+    <div class="wall">
+      <div class="window"><span class="moon"></span></div>
+      <div class="window second"></div>
+      <div class="sign">RUSTIKA · OPS CENTER</div>
+      <div class="wall-clock"><span id="clock">--:--:--</span></div>
+    </div>
+    <div class="floor"></div>
 
-    <!-- AGENT 3: Pemantau Online/Offline -->
-    <section class="station" data-agent="status">
-      <div class="bubble" id="bubble-status">Ping semua layanan…</div>
-      <div class="agent" data-mood="ok">
-        <div class="agent-body">
-          <span class="antenna"></span>
-          <div class="head">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="mouth"></span>
-          </div>
-          <div class="torso">
-            <span class="badge">📡</span>
-            <span class="arm left"></span>
-            <span class="arm right"></span>
-          </div>
-        </div>
-      </div>
-      <div class="console">
-        <div class="console-title">
-          <span class="status-dot" data-state="ok"></span> Pemantau Status
-          <span class="src" id="src-status">SIM</span>
-        </div>
-        <ul class="service-list" id="service-list">
-          <!-- diisi oleh JS -->
-        </ul>
-      </div>
-    </section>
+    <!-- ====== FURNITUR / STASIUN ====== -->
 
-    <!-- AGENT 4: Petugas Backup -->
-    <section class="station" data-agent="backup">
-      <div class="bubble" id="bubble-backup">Menyiapkan cadangan…</div>
-      <div class="agent" data-mood="busy">
-        <div class="agent-body">
-          <span class="antenna"></span>
-          <div class="head">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="mouth"></span>
-          </div>
-          <div class="torso">
-            <span class="badge">💾</span>
-            <span class="arm left typing"></span>
-            <span class="arm right"></span>
-          </div>
+    <!-- Server rack -->
+    <div class="furniture" data-agent="server" style="left:9%">
+      <div class="rack">
+        <div class="rack-screen">
+          <div class="mini-metric"><label>CPU</label><div class="mini-bar"><i id="cpu-bar"></i></div><span id="cpu-val">0%</span></div>
+          <div class="mini-metric"><label>RAM</label><div class="mini-bar"><i id="ram-bar"></i></div><span id="ram-val">0%</span></div>
         </div>
+        <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
+        <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
+        <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
       </div>
-      <div class="console">
-        <div class="console-title">
-          <span class="status-dot" data-state="busy"></span> Petugas Backup
-          <span class="src" id="src-backup">SIM</span>
-        </div>
-        <div class="files" id="backup-files">
-          <span class="file"></span><span class="file"></span><span class="file"></span>
-          <span class="file"></span><span class="file"></span><span class="file"></span>
-        </div>
-        <div class="metric">
-          <label>Backup</label>
-          <div class="bar"><i id="backup-bar"></i></div>
-          <span class="val" id="backup-val">0%</span>
-        </div>
-      </div>
-    </section>
+      <div class="nameplate"><span class="status-dot" data-state="ok"></span> Server <span class="src" id="src-server">SIM</span></div>
+    </div>
 
-    <!-- AGENT 5: Penjaga Keamanan -->
-    <section class="station" data-agent="security">
+    <!-- Update terminal -->
+    <div class="furniture" data-agent="update" style="left:25%">
+      <div class="desk">
+        <div class="monitor sm">
+          <div class="screen update-screen">
+            <div class="update-ring">
+              <svg viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52"></circle><circle class="ring-fg" id="update-ring" cx="60" cy="60" r="52"></circle></svg>
+              <div class="ring-label"><span id="update-pct">0</span>%</div>
+            </div>
+            <div class="version-line"><span id="version-now">v1.0.0</span> <span class="arrow">→</span> <span id="version-next">v1.0.1</span></div>
+          </div>
+        </div>
+        <div class="desk-leg"></div>
+      </div>
+      <div class="nameplate"><span class="status-dot" data-state="busy"></span> Update <span class="src" id="src-update">SIM</span></div>
+    </div>
+
+    <!-- Monitoring desk (status online/offline) -->
+    <div class="furniture wide" data-agent="status" style="left:43%">
+      <div class="desk">
+        <div class="monitor lg">
+          <div class="screen">
+            <ul class="service-list" id="service-list"></ul>
+          </div>
+        </div>
+        <div class="desk-leg"></div>
+      </div>
+      <div class="nameplate"><span class="status-dot" data-state="ok"></span> Monitoring <span class="src" id="src-status">SIM</span></div>
+    </div>
+
+    <!-- Backup drive -->
+    <div class="furniture" data-agent="backup" style="left:62%">
+      <div class="desk">
+        <div class="drive">
+          <div class="files" id="backup-files"><span class="file"></span><span class="file"></span><span class="file"></span><span class="file"></span></div>
+          <div class="mini-metric"><label>BKP</label><div class="mini-bar"><i id="backup-bar"></i></div><span id="backup-val">0%</span></div>
+        </div>
+        <div class="desk-leg"></div>
+      </div>
+      <div class="nameplate"><span class="status-dot" data-state="busy"></span> Backup <span class="src" id="src-backup">SIM</span></div>
+    </div>
+
+    <!-- Security console -->
+    <div class="furniture" data-agent="security" style="left:79%">
+      <div class="desk">
+        <div class="monitor sm">
+          <div class="screen sec-screen">
+            <div class="scanner" id="scanner">
+              <span class="scan-line"></span>
+              <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+              <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            </div>
+            <div class="sec-stats"><span><b id="sec-blocked">0</b> blok</span><span><b id="sec-active">0</b> ancaman</span></div>
+          </div>
+        </div>
+        <div class="desk-leg"></div>
+      </div>
+      <div class="nameplate"><span class="status-dot" data-state="busy"></span> Keamanan <span class="src" id="src-security">SIM</span></div>
+    </div>
+
+    <!-- Cache bin -->
+    <div class="furniture" data-agent="cache" style="left:93%">
+      <div class="bin">
+        <div class="cache-blocks" id="cache-blocks"><span class="blk"></span><span class="blk"></span><span class="blk"></span><span class="blk"></span><span class="blk"></span><span class="blk"></span></div>
+        <div class="cache-stats"><span><b id="cache-size">0</b> MB</span><span><b id="cache-hit">0%</b></span></div>
+      </div>
+      <div class="nameplate"><span class="status-dot" data-state="ok"></span> Cache <span class="src" id="src-cache">SIM</span></div>
+    </div>
+
+    <!-- ====== PARA AGENT (jalan bolak-balik) ====== -->
+    <div class="worker" data-agent="server">
+      <div class="bubble" id="bubble-server">Memantau server…</div>
+      <div class="tag">Penjaga Server</div>
+      <div class="body"><span class="badge">🛡️</span>
+        <span class="antenna"></span>
+        <div class="head"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+        <div class="torso"></div>
+        <div class="legs"><span class="leg left"></span><span class="leg right"></span></div>
+      </div>
+    </div>
+
+    <div class="worker" data-agent="update">
+      <div class="bubble" id="bubble-update">Mencari update…</div>
+      <div class="tag">Pemeriksa Update</div>
+      <div class="body"><span class="badge">🔄</span>
+        <span class="antenna"></span>
+        <div class="head"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+        <div class="torso"></div>
+        <div class="legs"><span class="leg left"></span><span class="leg right"></span></div>
+      </div>
+    </div>
+
+    <div class="worker" data-agent="status">
+      <div class="bubble" id="bubble-status">Ping layanan…</div>
+      <div class="tag">Pemantau Status</div>
+      <div class="body"><span class="badge">📡</span>
+        <span class="antenna"></span>
+        <div class="head"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+        <div class="torso"></div>
+        <div class="legs"><span class="leg left"></span><span class="leg right"></span></div>
+      </div>
+    </div>
+
+    <div class="worker" data-agent="backup">
+      <div class="bubble" id="bubble-backup">Menyiapkan backup…</div>
+      <div class="tag">Petugas Backup</div>
+      <div class="body"><span class="badge">💾</span>
+        <span class="antenna"></span>
+        <div class="head"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+        <div class="torso"></div>
+        <div class="legs"><span class="leg left"></span><span class="leg right"></span></div>
+      </div>
+    </div>
+
+    <div class="worker" data-agent="security">
       <div class="bubble" id="bubble-security">Memindai ancaman…</div>
-      <div class="agent" data-mood="busy">
-        <div class="agent-body">
-          <span class="antenna"></span>
-          <div class="head">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="mouth"></span>
-          </div>
-          <div class="torso">
-            <span class="badge">🔒</span>
-            <span class="arm left"></span>
-            <span class="arm right typing"></span>
-          </div>
-        </div>
+      <div class="tag">Penjaga Keamanan</div>
+      <div class="body"><span class="badge">🔒</span>
+        <span class="antenna"></span>
+        <div class="head"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+        <div class="torso"></div>
+        <div class="legs"><span class="leg left"></span><span class="leg right"></span></div>
       </div>
-      <div class="console">
-        <div class="console-title">
-          <span class="status-dot" data-state="busy"></span> Penjaga Keamanan
-          <span class="src" id="src-security">SIM</span>
-        </div>
-        <div class="scanner" id="scanner">
-          <span class="scan-line"></span>
-          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
-          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
-          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
-          <span class="cell"></span><span class="cell"></span><span class="cell"></span>
-        </div>
-        <div class="sec-stats">
-          <div><span class="num" id="sec-blocked">0</span><label>diblokir</label></div>
-          <div><span class="num" id="sec-active">0</span><label>ancaman aktif</label></div>
-        </div>
-      </div>
-    </section>
+    </div>
 
-    <!-- AGENT 6: Pembersih Cache -->
-    <section class="station" data-agent="cache">
+    <div class="worker" data-agent="cache">
       <div class="bubble" id="bubble-cache">Membersihkan cache…</div>
-      <div class="agent" data-mood="ok">
-        <div class="agent-body">
-          <span class="antenna"></span>
-          <div class="head">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="mouth"></span>
-          </div>
-          <div class="torso">
-            <span class="badge">🧹</span>
-            <span class="arm left typing"></span>
-            <span class="arm right typing"></span>
-          </div>
-        </div>
+      <div class="tag">Pembersih Cache</div>
+      <div class="body"><span class="badge">🧹</span>
+        <span class="antenna"></span>
+        <div class="head"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+        <div class="torso"></div>
+        <div class="legs"><span class="leg left"></span><span class="leg right"></span></div>
       </div>
-      <div class="console">
-        <div class="console-title">
-          <span class="status-dot" data-state="ok"></span> Pembersih Cache
-          <span class="src" id="src-cache">SIM</span>
-        </div>
-        <div class="cache-blocks" id="cache-blocks">
-          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
-          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
-          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
-          <span class="blk"></span><span class="blk"></span><span class="blk"></span>
-        </div>
-        <div class="cache-stats">
-          <div><span class="num" id="cache-size">0</span><label>MB cache</label></div>
-          <div><span class="num" id="cache-hit">0%</span><label>hit rate</label></div>
-        </div>
-      </div>
-    </section>
-  </main>
+    </div>
+
+  </div><!-- /office -->
+  </div><!-- /office-scroll -->
 
   <section class="logpanel">
     <div class="logpanel-head">
@@ -253,7 +198,7 @@
   </section>
 
   <footer class="footer">
-    Visualisasi dekoratif — agent &amp; metrik disimulasikan di browser. Dibuat untuk dashboard web app kamu.
+    Para agent disimulasikan di browser. Monitoring online/offline memakai data nyata dari <code>config.js</code>.
   </footer>
 
   <script src="config.js"></script>

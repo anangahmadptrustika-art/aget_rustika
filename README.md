@@ -1,9 +1,10 @@
 # Ruang Kendali Agent 🤖
 
-Web animasi yang menampilkan beberapa **agent** (karakter robot) yang seolah-olah
-sedang bekerja, masing-masing dengan tugasnya sendiri. Bisa jalan dengan data
-**simulasi** (langsung hidup tanpa setup) atau dihubungkan ke **data nyata** web
-app kamu lewat `fetch`.
+Web animasi bergaya **kantor**: sebuah ruangan dengan dinding, jendela, dan lantai,
+berisi beberapa **agent** (karakter robot) yang **berjalan bolak-balik** di depan
+mejanya masing-masing — menjaga server, cek update, memantau online/offline, backup,
+keamanan, dan cache. Bisa jalan dengan data **simulasi** (langsung hidup tanpa setup)
+atau dihubungkan ke **data nyata** web app kamu lewat `fetch`.
 
 ## Para Agent
 
@@ -86,11 +87,14 @@ Selang polling tiap agent dan timeout fetch juga bisa diatur di `config.js`
 ## Struktur
 
 ```
-index.html   — struktur halaman & para agent
-styles.css   — gaya & semua animasi
+index.html   — scene kantor: dinding, lantai, furnitur (meja/server), & para agent
+styles.css   — gaya kantor + animasi jalan (kaki berayun) + furnitur
 config.js    — KONFIGURASI: hubungkan ke data nyata (edit di sini)
-app.js       — logika: fetch data asli + fallback simulasi + log
+app.js       — logika: fetch data asli + fallback simulasi + log + mesin gerak agent
 ```
+
+Para agent berjalan memakai mesin gerak ringan (`requestAnimationFrame`): tiap
+agent berjalan ke mejanya → bekerja sebentar → mondar-mandir → kembali, berulang.
 
 Animasi otomatis dimatikan untuk pengguna yang mengaktifkan
 `prefers-reduced-motion`.
