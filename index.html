@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ruang Kendali Agent · Animasi</title>
+  <meta name="description" content="Visualisasi animasi para agent yang sedang bekerja: jaga server, cek update, pantau online/offline, dan backup." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo-dot"></span>
+      <h1>Ruang Kendali Agent</h1>
+    </div>
+    <div class="topbar-meta">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="uptime">Uptime sistem: <span id="uptime">0d 00:00:00</span></div>
+    </div>
+  </header>
+
+  <main class="floor">
+    <!-- AGENT 1: Penjaga Server -->
+    <section class="station" data-agent="server">
+      <div class="bubble" id="bubble-server">Memantau beban server…</div>
+      <div class="agent" data-mood="ok">
+        <div class="agent-body">
+          <span class="antenna"></span>
+          <div class="head">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="mouth"></span>
+          </div>
+          <div class="torso">
+            <span class="badge">🛡️</span>
+            <span class="arm left"></span>
+            <span class="arm right"></span>
+          </div>
+        </div>
+      </div>
+      <div class="console">
+        <div class="console-title">
+          <span class="status-dot" data-state="ok"></span> Penjaga Server
+        </div>
+        <div class="server-rack">
+          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
+          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
+          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
+          <div class="rack-unit"><span class="led"></span><span class="led"></span><span class="led"></span></div>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <label>CPU</label>
+            <div class="bar"><i id="cpu-bar"></i></div>
+            <span class="val" id="cpu-val">0%</span>
+          </div>
+          <div class="metric">
+            <label>RAM</label>
+            <div class="bar"><i id="ram-bar"></i></div>
+            <span class="val" id="ram-val">0%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AGENT 2: Pemeriksa Update -->
+    <section class="station" data-agent="update">
+      <div class="bubble" id="bubble-update">Mencari pembaruan…</div>
+      <div class="agent" data-mood="busy">
+        <div class="agent-body">
+          <span class="antenna"></span>
+          <div class="head">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="mouth"></span>
+          </div>
+          <div class="torso">
+            <span class="badge">🔄</span>
+            <span class="arm left typing"></span>
+            <span class="arm right typing"></span>
+          </div>
+        </div>
+      </div>
+      <div class="console">
+        <div class="console-title">
+          <span class="status-dot" data-state="busy"></span> Pemeriksa Update
+        </div>
+        <div class="update-ring">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fg" id="update-ring" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="ring-label"><span id="update-pct">0</span>%</div>
+        </div>
+        <div class="version-line">
+          versi <span id="version-now">v1.0.0</span>
+          <span class="arrow">→</span>
+          <span id="version-next">v1.0.1</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- AGENT 3: Pemantau Online/Offline -->
+    <section class="station" data-agent="status">
+      <div class="bubble" id="bubble-status">Ping semua layanan…</div>
+      <div class="agent" data-mood="ok">
+        <div class="agent-body">
+          <span class="antenna"></span>
+          <div class="head">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="mouth"></span>
+          </div>
+          <div class="torso">
+            <span class="badge">📡</span>
+            <span class="arm left"></span>
+            <span class="arm right"></span>
+          </div>
+        </div>
+      </div>
+      <div class="console">
+        <div class="console-title">
+          <span class="status-dot" data-state="ok"></span> Pemantau Status
+        </div>
+        <ul class="service-list" id="service-list">
+          <!-- diisi oleh JS -->
+        </ul>
+      </div>
+    </section>
+
+    <!-- AGENT 4: Petugas Backup -->
+    <section class="station" data-agent="backup">
+      <div class="bubble" id="bubble-backup">Menyiapkan cadangan…</div>
+      <div class="agent" data-mood="busy">
+        <div class="agent-body">
+          <span class="antenna"></span>
+          <div class="head">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="mouth"></span>
+          </div>
+          <div class="torso">
+            <span class="badge">💾</span>
+            <span class="arm left typing"></span>
+            <span class="arm right"></span>
+          </div>
+        </div>
+      </div>
+      <div class="console">
+        <div class="console-title">
+          <span class="status-dot" data-state="busy"></span> Petugas Backup
+        </div>
+        <div class="files" id="backup-files">
+          <span class="file"></span><span class="file"></span><span class="file"></span>
+          <span class="file"></span><span class="file"></span><span class="file"></span>
+        </div>
+        <div class="metric">
+          <label>Backup</label>
+          <div class="bar"><i id="backup-bar"></i></div>
+          <span class="val" id="backup-val">0%</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="logpanel">
+    <div class="logpanel-head">
+      <span class="status-dot" data-state="ok"></span>
+      Log Aktivitas Langsung
+      <button id="pause-btn" class="pause-btn" type="button">⏸ Jeda</button>
+    </div>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <footer class="footer">
+    Visualisasi dekoratif — agent &amp; metrik disimulasikan di browser. Dibuat untuk dashboard web app kamu.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
