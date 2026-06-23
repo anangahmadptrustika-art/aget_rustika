@@ -20,10 +20,10 @@ window.AGENT_CONFIG = {
      Kosongkan "url" kalau mau layanan itu disimulasikan saja.
      -------------------------------------------------------------- */
   services: [
-    { name: "api.webapp",   url: null /* "https://api.webappku.com/health" */ },
-    { name: "web-frontend", url: null /* "https://webappku.com" */ },
-    { name: "database",     url: null /* "https://db.webappku.com" */ },
-    { name: "cdn-assets",   url: null /* "https://cdn.webappku.com" */ },
+    { name: "Kwitansi Rustika", url: "https://kwitansi-rustika.vercel.app/" },
+    { name: "AI Agen",          url: "https://ai-agen-1t5u.vercel.app/" },
+    { name: "Rustika Client",   url: "https://rustika-client.vercel.app/" },
+    { name: "Laporan BBG",      url: "https://laporan-bbg.vercel.app/" },
   ],
 
   /* --------------------------------------------------------------
