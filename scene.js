@@ -1,9 +1,9 @@
 /* ====================================================================
-   Rustika Ops Center — scene isometrik 2D (Canvas 2D, TANPA WebGL).
-   Berjalan di CPU sehingga aman di perangkat apa pun (termasuk VM /
-   remote desktop tanpa GPU). Menggambar ruangan kantor isometrik +
-   karakter agent yang berjalan & bekerja. Teks gelembung & mood dibaca
-   dari window.AGENT_STATE (diisi app.js).
+   Rustika Ops Center — kantor isometrik (Canvas 2D, TANPA WebGL).
+   Ruangan besar berisi 6 kamar (1 per agent) yang dipisah partisi kaca
+   berpintu. Tiap agent berjalan & bekerja di kamarnya, dan sesekali
+   pergi ke kamar lain lewat pintu. Berjalan di CPU -> aman di perangkat
+   apa pun. Teks gelembung & mood dibaca dari window.AGENT_STATE.
    ==================================================================== */
 (() => {
   "use strict";
@@ -18,20 +18,23 @@
   }
   stage.appendChild(canvas);
 
-  /* ---------- Konfigurasi dunia ---------- */
-  const GW = 9, GH = 6;            // ukuran ruangan (tile)
-  const TW = 74, TH = 37;          // ukuran tile isometrik (2:1)
-  const HW = TW / 2, HH = TH / 2;
-  const WALL_H = 78;               // tinggi dinding (px)
-  const PANEL = 332;               // ruang panel kanan
+  /* ---------- Dunia ---------- */
+  const COLS = 3, ROWS = 2;        // 3x2 = 6 kamar
+  const RW = 4, RD = 4;            // ukuran tiap kamar (tile)
+  const GW = COLS * RW, GH = ROWS * RD; // total lantai = 12 x 8 tile
+  const TW = 72, TH = 36, HW = TW / 2, HH = TH / 2;
+  const WALL_H = 82;               // tinggi dinding luar
+  const PART_H = 46;               // tinggi partisi kaca dalam
+  const PANEL = 332;
 
+  // kamar tiap agent (kolom, baris)
   const AGENTS = [
-    { key: "server",   name: "Penjaga Server",   color: "#ff8a3d", station: { x: 1.5, y: 1.5 } },
-    { key: "update",   name: "Pemeriksa Update", color: "#4da3ff", station: { x: 3.5, y: 1.7 } },
-    { key: "status",   name: "Pemantau Status",  color: "#9b6bff", station: { x: 6.2, y: 1.7 } },
-    { key: "backup",   name: "Petugas Backup",   color: "#32c98a", station: { x: 2.3, y: 4.2 } },
-    { key: "security", name: "Penjaga Keamanan", color: "#f65d5d", station: { x: 5.0, y: 4.4 } },
-    { key: "cache",    name: "Pembersih Cache",  color: "#f5c63d", station: { x: 7.4, y: 4.0 } },
+    { key: "server",   name: "Penjaga Server",   color: "#ff8a3d", room: [0, 0] },
+    { key: "update",   name: "Pemeriksa Update", color: "#4da3ff", room: [1, 0] },
+    { key: "status",   name: "Pemantau Status",  color: "#9b6bff", room: [2, 0] },
+    { key: "backup",   name: "Petugas Backup",   color: "#32c98a", room: [0, 1] },
+    { key: "security", name: "Penjaga Keamanan", color: "#f65d5d", room: [1, 1] },
+    { key: "cache",    name: "Pembersih Cache",  color: "#f5c63d", room: [2, 1] },
   ];
 
   let zoom = 1, pan = { x: 0, y: 0 };
@@ -40,24 +43,53 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-  function project(wx, wy) {
-    return { x: pan.x + (wx - wy) * HW * zoom, y: pan.y + (wx + wy) * HH * zoom };
-  }
+  function project(wx, wy) { return { x: pan.x + (wx - wy) * HW * zoom, y: pan.y + (wx + wy) * HH * zoom }; }
   function unproject(sx, sy) {
-    const a = (sx - pan.x) / (HW * zoom);
-    const b = (sy - pan.y) / (HH * zoom);
+    const a = (sx - pan.x) / (HW * zoom), b = (sy - pan.y) / (HH * zoom);
     return { x: (a + b) / 2, y: (b - a) / 2 };
   }
   function shade(hex, f) {
     const n = parseInt(hex.slice(1), 16);
     let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-    r = clamp(Math.round(r * f), 0, 255);
-    g = clamp(Math.round(g * f), 0, 255);
-    b = clamp(Math.round(b * f), 0, 255);
+    r = clamp(Math.round(r * f), 0, 255); g = clamp(Math.round(g * f), 0, 255); b = clamp(Math.round(b * f), 0, 255);
     return `rgb(${r},${g},${b})`;
   }
 
-  /* ---------- Ukuran & pemusatan ---------- */
+  /* ---------- Pintu & navigasi antar kamar ---------- */
+  // Titik pintu di tiap batas kamar bersebelahan.
+  function doorBetween(a, b) {
+    if (a[1] === b[1]) { const cc = Math.min(a[0], b[0]); return { x: (cc + 1) * RW, y: a[1] * RD + RD / 2 }; }
+    const rr = Math.min(a[1], b[1]); return { x: a[0] * RW + RW / 2, y: (rr + 1) * RD };
+  }
+  function neighbors([c, r]) {
+    const out = [];
+    if (c > 0) out.push([c - 1, r]); if (c < COLS - 1) out.push([c + 1, r]);
+    if (r > 0) out.push([c, r - 1]); if (r < ROWS - 1) out.push([c, r + 1]);
+    return out;
+  }
+  function bfs(start, goal) {
+    const key = (q) => q[0] + "," + q[1];
+    const prev = { [key(start)]: null }; const queue = [start];
+    while (queue.length) {
+      const cur = queue.shift();
+      if (key(cur) === key(goal)) break;
+      for (const nb of neighbors(cur)) if (!(key(nb) in prev)) { prev[key(nb)] = cur; queue.push(nb); }
+    }
+    const path = []; let c = goal;
+    while (c) { path.unshift(c); c = prev[key(c)]; }
+    return path;
+  }
+  function roomBounds(c, r, m = 0.7) { return { x0: c * RW + m, x1: (c + 1) * RW - m, y0: r * RD + m, y1: (r + 1) * RD - m }; }
+  function pickInRoom(c, r) { const b = roomBounds(c, r); return { x: rand(b.x0, b.x1), y: rand(b.y0, b.y1) }; }
+
+  /* ---------- Segmen partisi kaca (untuk diurut kedalaman) ---------- */
+  const wallSegs = [];
+  const isDoorV = (y) => Math.abs((y + 0.5) % RD - RD / 2) < 0.9; // dekat pusat baris
+  const isDoorH = (x) => Math.abs((x + 0.5) % RW - RW / 2) < 0.9; // dekat pusat kolom
+  for (let cc = 1; cc < COLS; cc++) { const X = cc * RW; for (let y = 0; y < GH; y++) if (!isDoorV(y)) wallSegs.push({ sum: X + y + 0.5, kind: "v", X, a: y, b: y + 1 }); }
+  for (let rr = 1; rr < ROWS; rr++) { const Y = rr * RD; for (let x = 0; x < GW; x++) if (!isDoorH(x)) wallSegs.push({ sum: x + 0.5 + Y, kind: "h", Y, a: x, b: x + 1 }); }
+
+  /* ---------- Render dasar ---------- */
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth; H = window.innerHeight;
@@ -67,19 +99,12 @@
     recenter();
   }
   function recenter() {
-    // letakkan pusat ruangan di area kiri (sisakan panel kanan)
-    const cx = (GW / 2 - GH / 2) * HW * zoom;
-    const cy = (GW / 2 + GH / 2) * HH * zoom;
-    const targetX = Math.max(260, (W - PANEL) / 2);
-    const targetY = H * 0.46;
-    pan.x = targetX - cx;
-    pan.y = targetY - cy;
+    const cx = (GW / 2 - GH / 2) * HW * zoom, cy = (GW / 2 + GH / 2) * HH * zoom;
+    pan.x = Math.max(250, (W - PANEL) / 2) - cx;
+    pan.y = H * 0.44 - cy;
   }
-
-  /* ---------- Gambar lantai ---------- */
   function poly(pts, fill, stroke, lw) {
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.closePath();
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
@@ -87,173 +112,188 @@
   }
 
   function drawFloor() {
-    for (let i = 0; i < GW; i++) {
-      for (let j = 0; j < GH; j++) {
-        const a = project(i, j), b = project(i + 1, j), c = project(i + 1, j + 1), d = project(i, j + 1);
-        const light = (i + j) % 2 === 0 ? "#eef2fc" : "#e6ecf8";
-        poly([a, b, c, d], light, "rgba(120,140,190,0.18)", 1);
-      }
+    for (let i = 0; i < GW; i++) for (let j = 0; j < GH; j++) {
+      const a = project(i, j), b = project(i + 1, j), c = project(i + 1, j + 1), d = project(i, j + 1);
+      poly([a, b, c, d], (i + j) % 2 === 0 ? "#eef2fc" : "#e7edf8", "rgba(120,140,190,0.16)", 1);
     }
-    // karpet aksen
-    const r0 = project(3.1, 2.0), r1 = project(5.9, 2.0), r2 = project(5.9, 4.2), r3 = project(3.1, 4.2);
-    poly([r0, r1, r2, r3], "rgba(91,124,255,0.10)", "rgba(91,124,255,0.18)", 1);
+    // garis batas kamar (lebih tegas) di lantai
+    ctx.strokeStyle = "rgba(91,124,255,0.30)"; ctx.lineWidth = 2;
+    for (let cc = 1; cc < COLS; cc++) { const p1 = project(cc * RW, 0), p2 = project(cc * RW, GH); ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+    for (let rr = 1; rr < ROWS; rr++) { const p1 = project(0, rr * RD), p2 = project(GW, rr * RD); ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
   }
 
-  function drawWalls() {
-    const H0 = WALL_H * zoom;
-    // dinding belakang (y = 0)
+  function drawOuterWalls() {
+    const h = WALL_H * zoom;
     let p1 = project(0, 0), p2 = project(GW, 0);
-    poly([p1, p2, { x: p2.x, y: p2.y - H0 }, { x: p1.x, y: p1.y - H0 }], "#e3e9f7", "rgba(120,140,190,0.25)", 1);
-    // jendela di dinding belakang
-    drawWindow(2.0, 0, 1.6);
-    drawWindow(5.2, 0, 1.6);
-    // dinding kiri (x = 0)
+    poly([p1, p2, { x: p2.x, y: p2.y - h }, { x: p1.x, y: p1.y - h }], "#e3e9f7", "rgba(120,140,190,0.25)", 1);
+    for (let c = 0; c < COLS; c++) drawWindow(c * RW + 1.0, 0, RW - 2.0);
     p1 = project(0, 0); p2 = project(0, GH);
-    poly([p1, p2, { x: p2.x, y: p2.y - H0 }, { x: p1.x, y: p1.y - H0 }], "#d7deef", "rgba(120,140,190,0.25)", 1);
-    // skirting
+    poly([p1, p2, { x: p2.x, y: p2.y - h }, { x: p1.x, y: p1.y - h }], "#d7deef", "rgba(120,140,190,0.25)", 1);
     p1 = project(0, 0); p2 = project(GW, 0);
     poly([p1, p2, { x: p2.x, y: p2.y - 7 * zoom }, { x: p1.x, y: p1.y - 7 * zoom }], "rgba(150,165,205,0.5)");
   }
-
   function drawWindow(wx, wy, ww) {
-    const top = WALL_H * zoom - 18 * zoom, bot = 26 * zoom;
+    const top = WALL_H * zoom - 20 * zoom, bot = 28 * zoom;
     const p1 = project(wx, wy), p2 = project(wx + ww, wy);
-    const A = { x: p1.x, y: p1.y - bot }, B = { x: p2.x, y: p2.y - bot };
-    const C = { x: p2.x, y: p2.y - top }, D = { x: p1.x, y: p1.y - top };
-    poly([A, B, C, D], "rgba(150,200,255,0.55)", "rgba(120,150,210,0.5)", 1.5);
-    // bingkai tengah
-    const mx = (A.x + B.x) / 2, my1 = (A.y + B.y) / 2, my2 = (C.y + D.y) / 2;
-    ctx.strokeStyle = "rgba(120,150,210,0.5)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(mx, my1); ctx.lineTo(mx, my2); ctx.stroke();
+    const A = { x: p1.x, y: p1.y - bot }, B = { x: p2.x, y: p2.y - bot }, C = { x: p2.x, y: p2.y - top }, D = { x: p1.x, y: p1.y - top };
+    poly([A, B, C, D], "rgba(150,200,255,0.5)", "rgba(120,150,210,0.45)", 1.5);
+    const mx = (A.x + B.x) / 2;
+    ctx.strokeStyle = "rgba(120,150,210,0.45)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(mx, (A.y + B.y) / 2); ctx.lineTo(mx, (C.y + D.y) / 2); ctx.stroke();
+  }
+  function drawWallSeg(seg) {
+    const h = PART_H * zoom;
+    let p1, p2;
+    if (seg.kind === "v") { p1 = project(seg.X, seg.a); p2 = project(seg.X, seg.b); }
+    else { p1 = project(seg.a, seg.Y); p2 = project(seg.b, seg.Y); }
+    const A = p1, B = p2, C = { x: p2.x, y: p2.y - h }, D = { x: p1.x, y: p1.y - h };
+    poly([A, B, C, D], "rgba(150,198,255,0.20)", "rgba(120,150,210,0.30)", 1);
+    // rel atas
+    ctx.strokeStyle = "rgba(130,160,220,0.7)"; ctx.lineWidth = 2.2 * zoom;
+    ctx.beginPath(); ctx.moveTo(D.x, D.y); ctx.lineTo(C.x, C.y); ctx.stroke();
   }
 
-  /* ---------- Gambar kotak isometrik (perabot) ---------- */
+  /* ---------- Perabot ---------- */
   function drawBox(wx, wy, fw, fd, hpx, color) {
     const h = hpx * zoom;
     const A = project(wx, wy), B = project(wx + fw, wy), C = project(wx + fw, wy + fd), D = project(wx, wy + fd);
     const tA = { x: A.x, y: A.y - h }, tB = { x: B.x, y: B.y - h }, tC = { x: C.x, y: C.y - h }, tD = { x: D.x, y: D.y - h };
-    // sisi kiri-depan (+y) lebih gelap
-    poly([D, C, tC, tD], shade(color, 0.72), "rgba(0,0,0,0.06)", 1);
-    // sisi kanan-depan (+x)
-    poly([B, C, tC, tB], shade(color, 0.86), "rgba(0,0,0,0.06)", 1);
-    // atap
+    poly([D, C, tC, tD], shade(color, 0.72), "rgba(0,0,0,0.05)", 1);
+    poly([B, C, tC, tB], shade(color, 0.86), "rgba(0,0,0,0.05)", 1);
     poly([tA, tB, tC, tD], shade(color, 1.06), "rgba(0,0,0,0.05)", 1);
   }
-
-  /* ---------- Perabot statis ---------- */
   function drawDesk(wx, wy) {
-    drawBox(wx, wy + 0.15, 1.1, 0.6, 26, "#b88a5e");          // meja
-    drawBox(wx + 0.32, wy + 0.28, 0.46, 0.08, 50, "#2b3346"); // monitor (badan)
-    // layar
-    const s = project(wx + 0.32, wy + 0.30);
-    ctx.fillStyle = "#6ee7ff";
-    ctx.globalAlpha = 0.9;
-    const sw = 30 * zoom, sh = 18 * zoom;
-    ctx.fillRect(s.x - sw / 2, s.y - 46 * zoom, sw, sh);
-    ctx.globalAlpha = 1;
+    drawBox(wx, wy + 0.12, 1.0, 0.55, 26, "#b88a5e");
+    drawBox(wx + 0.30, wy + 0.24, 0.42, 0.08, 48, "#2b3346");
+    const s = project(wx + 0.30, wy + 0.26);
+    ctx.fillStyle = "#6ee7ff"; ctx.globalAlpha = 0.92;
+    ctx.fillRect(s.x - 15 * zoom, s.y - 44 * zoom, 30 * zoom, 17 * zoom); ctx.globalAlpha = 1;
   }
   function drawRack(wx, wy) {
     drawBox(wx, wy, 0.6, 0.6, 74, "#2a3142");
-    // LED
     const p = project(wx + 0.05, wy + 0.55);
     const cols = ["#34d399", "#34d399", "#fbbf24", "#34d399", "#34d399"];
-    for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = cols[i];
-      ctx.fillRect(p.x, p.y - (24 + i * 11) * zoom, 16 * zoom, 4 * zoom);
-    }
+    for (let i = 0; i < 5; i++) { ctx.fillStyle = cols[i]; ctx.fillRect(p.x, p.y - (24 + i * 11) * zoom, 16 * zoom, 4 * zoom); }
   }
   function drawPlant(wx, wy) {
-    drawBox(wx, wy, 0.34, 0.34, 14, "#c98a5e");
-    const p = project(wx + 0.17, wy + 0.17);
-    ctx.fillStyle = "#46b06a";
-    ctx.beginPath(); ctx.arc(p.x, p.y - 30 * zoom, 16 * zoom, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#5cc77e";
-    ctx.beginPath(); ctx.arc(p.x + 8 * zoom, p.y - 40 * zoom, 10 * zoom, 0, Math.PI * 2); ctx.fill();
+    drawBox(wx, wy, 0.32, 0.32, 14, "#c98a5e");
+    const p = project(wx + 0.16, wy + 0.16);
+    ctx.fillStyle = "#46b06a"; ctx.beginPath(); ctx.arc(p.x, p.y - 30 * zoom, 15 * zoom, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#5cc77e"; ctx.beginPath(); ctx.arc(p.x + 7 * zoom, p.y - 39 * zoom, 9 * zoom, 0, Math.PI * 2); ctx.fill();
   }
-  function drawBin(wx, wy) { drawBox(wx, wy, 0.32, 0.32, 22, "#6b76a0"); }
+  function drawBin(wx, wy) { drawBox(wx, wy, 0.3, 0.3, 22, "#6b76a0"); }
 
-  // daftar perabot dengan kunci kedalaman (x+y)
   const PROPS = [
-    { x: 0.9, y: 0.9, sum: 1.8, draw: () => drawRack(0.9, 0.9) },
-    { x: 1.7, y: 0.9, sum: 2.6, draw: () => drawRack(1.7, 0.9) },
-    { x: 3.0, y: 1.0, sum: 4.0, draw: () => drawDesk(3.0, 1.0) },
-    { x: 5.7, y: 1.0, sum: 6.7, draw: () => drawDesk(5.7, 1.0) },
-    { x: 1.8, y: 4.4, sum: 6.2, draw: () => drawDesk(1.8, 4.4) },
-    { x: 4.5, y: 4.6, sum: 9.1, draw: () => drawDesk(4.5, 4.6) },
-    { x: 7.5, y: 4.1, sum: 11.6, draw: () => drawBin(7.5, 4.1) },
-    { x: 0.5, y: 5.4, sum: 5.9, draw: () => drawPlant(0.5, 5.4) },
-    { x: 8.4, y: 0.6, sum: 9.0, draw: () => drawPlant(8.4, 0.6) },
-    { x: 8.4, y: 5.3, sum: 13.7, draw: () => drawPlant(8.4, 5.3) },
-  ];
+    { x: 1.4, y: 1.4, draw: () => drawRack(1.4, 1.4) },
+    { x: 2.2, y: 1.4, draw: () => drawRack(2.2, 1.4) },
+    { x: 5.4, y: 1.3, draw: () => drawDesk(5.4, 1.3) },
+    { x: 9.4, y: 1.3, draw: () => drawDesk(9.4, 1.3) },
+    { x: 1.4, y: 5.4, draw: () => drawDesk(1.4, 5.4) },
+    { x: 5.4, y: 5.4, draw: () => drawDesk(5.4, 5.4) },
+    { x: 9.4, y: 5.4, draw: () => drawDesk(9.4, 5.4) },
+    { x: 10.6, y: 6.4, draw: () => drawBin(10.6, 6.4) },
+    { x: 0.5, y: 3.5, draw: () => drawPlant(0.5, 3.5) },
+    { x: 11.4, y: 0.5, draw: () => drawPlant(11.4, 0.5) },
+    { x: 11.4, y: 7.4, draw: () => drawPlant(11.4, 7.4) },
+    { x: 0.5, y: 7.4, draw: () => drawPlant(0.5, 7.4) },
+  ].map((p) => ({ ...p, sum: p.x + p.y }));
 
-  /* ---------- Karakter agent ---------- */
-  function drawAgent(ag, alert) {
-    const p = project(ag.x, ag.y);
-    const z = zoom;
-    const bob = ag.bob * z;
+  /* ---------- Karakter ---------- */
+  function drawAgent(ag) {
+    const p = project(ag.x, ag.y), z = zoom, t = ag.t, moving = ag.phase === "walk", col = ag.color;
     // bayangan
-    ctx.fillStyle = "rgba(30,40,70,0.18)";
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, 15 * z, 7 * z, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = "rgba(30,40,70,0.16)";
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, 15 * z, 6.5 * z, 0, 0, Math.PI * 2); ctx.fill();
 
-    const baseY = p.y - bob;
-    // badan (kapsul) dengan gradien -> kesan 3D
-    const bodyTop = baseY - 44 * z, bodyBot = baseY - 6 * z;
-    const bw = 22 * z;
-    const grad = ctx.createLinearGradient(p.x - bw, 0, p.x + bw, 0);
-    grad.addColorStop(0, shade(ag.color, 0.78));
-    grad.addColorStop(0.5, ag.color);
-    grad.addColorStop(1, shade(ag.color, 1.12));
-    ctx.fillStyle = grad;
-    roundedBody(p.x, bodyTop, bodyBot, bw);
-    if (alert) { ctx.strokeStyle = "#e5484d"; ctx.lineWidth = 2.5 * z; ctx.stroke(); }
+    const bob = (moving ? Math.abs(Math.sin(t * 9)) * 4 : Math.sin(t * 3) * 1.1) * z;
+    const by = p.y - bob;
+    const step = (moving ? Math.sin(t * 9) * 3.5 : 0) * z;
+
+    // kaki
+    ctx.fillStyle = shade(col, 0.5);
+    foot(p.x - 6 * z, by - 1 * z + step, z);
+    foot(p.x + 6 * z, by - 1 * z - step, z);
+
+    // lengan belakang (kiri)
+    const sw = (moving ? Math.sin(t * 9) * 6 : 0) * z;
+    ctx.fillStyle = shade(col, 0.82);
+    limb(p.x - 17 * z, by - 30 * z + sw, z);
+
+    // badan
+    const top = by - 48 * z, bot = by - 6 * z, w = 19 * z;
+    const g = ctx.createRadialGradient(p.x - 7 * z, top + 10 * z, 4 * z, p.x, by - 26 * z, 34 * z);
+    g.addColorStop(0, shade(col, 1.28)); g.addColorStop(0.55, col); g.addColorStop(1, shade(col, 0.68));
+    ctx.fillStyle = g; body(p.x, top, bot, w);
+    if (ag.alert) { ctx.strokeStyle = "#e5484d"; ctx.lineWidth = 2.5 * z; ctx.stroke(); }
+
+    // lengan depan (kanan)
+    ctx.fillStyle = shade(col, 1.0);
+    limb(p.x + 17 * z, by - 30 * z - sw, z);
 
     // kepala
-    const hy = baseY - 52 * z, hr = 13 * z;
-    const hg = ctx.createLinearGradient(p.x - hr, 0, p.x + hr, 0);
-    hg.addColorStop(0, shade(ag.color, 0.85));
-    hg.addColorStop(1, shade(ag.color, 1.15));
-    ctx.fillStyle = hg;
-    ctx.beginPath(); ctx.arc(p.x, hy, hr, 0, Math.PI * 2); ctx.fill();
-    // mata
-    ctx.fillStyle = alert ? "#ffd7d7" : "#1a2238";
-    ctx.beginPath(); ctx.arc(p.x - 5 * z, hy - 1 * z, 2.4 * z, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x + 5 * z, hy - 1 * z, 2.4 * z, 0, Math.PI * 2); ctx.fill();
+    const hy = by - 56 * z, hr = 13.5 * z;
+    const hg = ctx.createRadialGradient(p.x - 5 * z, hy - 5 * z, 2 * z, p.x, hy, hr * 1.4);
+    hg.addColorStop(0, shade(col, 1.3)); hg.addColorStop(1, shade(col, 0.82));
+    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(p.x, hy, hr, 0, Math.PI * 2); ctx.fill();
+
+    // wajah (arah pandang sedikit mengikuti gerak)
+    const ed = clamp((ag.dirx - ag.diry), -1, 1) * 2.2 * z;
+    // mata putih + pupil
+    eye(p.x - 5 * z + ed, hy - 1 * z, z, ag.alert);
+    eye(p.x + 5 * z + ed, hy - 1 * z, z, ag.alert);
+    // mulut senyum
+    ctx.strokeStyle = "rgba(20,30,55,0.6)"; ctx.lineWidth = 1.4 * z;
+    ctx.beginPath(); ctx.arc(p.x + ed * 0.5, hy + 5 * z, 3.2 * z, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+
     // antena
     ctx.strokeStyle = "#9aa6c8"; ctx.lineWidth = 1.6 * z;
     ctx.beginPath(); ctx.moveTo(p.x, hy - hr); ctx.lineTo(p.x, hy - hr - 9 * z); ctx.stroke();
-    ctx.fillStyle = alert ? "#e5484d" : "#6ee7ff";
+    ctx.fillStyle = ag.alert ? "#e5484d" : "#6ee7ff";
     ctx.beginPath(); ctx.arc(p.x, hy - hr - 11 * z, 3 * z, 0, Math.PI * 2); ctx.fill();
   }
-  function roundedBody(cx, top, bot, w) {
+  function body(cx, top, bot, w) {
     const r = w;
     ctx.beginPath();
     ctx.moveTo(cx - w, top + r);
     ctx.arc(cx, top + r, w, Math.PI, 0);
-    ctx.lineTo(cx + w, bot - r * 0.6);
-    ctx.quadraticCurveTo(cx + w, bot, cx, bot);
-    ctx.quadraticCurveTo(cx - w, bot, cx - w, bot - r * 0.6);
-    ctx.closePath();
-    ctx.fill();
+    ctx.bezierCurveTo(cx + w * 1.05, bot - r * 0.9, cx + w * 0.85, bot, cx, bot);
+    ctx.bezierCurveTo(cx - w * 0.85, bot, cx - w * 1.05, bot - r * 0.9, cx - w, top + r);
+    ctx.closePath(); ctx.fill();
+  }
+  function limb(x, y, z) { ctx.beginPath(); ctx.ellipse(x, y, 5.5 * z, 9 * z, 0, 0, Math.PI * 2); ctx.fill(); }
+  function foot(x, y, z) { ctx.beginPath(); ctx.ellipse(x, y, 6.5 * z, 4 * z, 0, 0, Math.PI * 2); ctx.fill(); }
+  function eye(x, y, z, alert) {
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(x, y, 3.4 * z, 4 * z, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = alert ? "#e5484d" : "#1a2238"; ctx.beginPath(); ctx.arc(x, y + 0.6 * z, 1.9 * z, 0, Math.PI * 2); ctx.fill();
   }
 
-  /* ---------- State gerak agent ---------- */
+  /* ---------- State agent ---------- */
   const agents = AGENTS.map((a) => {
-    const x = clamp(a.station.x + rand(-0.5, 0.5), 0.6, GW - 0.6);
-    const y = clamp(a.station.y + rand(-0.5, 0.5), 0.6, GH - 0.6);
+    const [c, r] = a.room; const s = pickInRoom(c, r);
     return {
-      ...a, x, y, tx: x, ty: y,
-      speed: rand(0.7, 1.1), phase: "rest", rest: rand(0.4, 1.6),
-      t: Math.random() * 10, bob: 0,
+      ...a, cx: c, cy: r, x: s.x, y: s.y,
+      queue: [], destRoom: [c, r], dirx: 0, diry: 0,
+      speed: rand(0.85, 1.25), phase: "rest", rest: rand(0.4, 1.8), t: Math.random() * 10,
       bub: document.querySelector(`.bub[data-agent="${a.key}"]`),
     };
   });
-  function pickTarget(ag) {
-    if (Math.random() < 0.7) {
-      return { x: clamp(ag.station.x + rand(-0.7, 0.7), 0.6, GW - 0.6), y: clamp(ag.station.y + rand(-0.7, 0.7), 0.6, GH - 0.6), work: true };
+
+  function decideNext(ag) {
+    if (Math.random() < 0.75) {
+      // berkeliling di kamar sendiri
+      ag.queue = [pickInRoom(ag.cx, ag.cy)];
+      ag.destRoom = [ag.cx, ag.cy];
+    } else {
+      // kunjungi kamar lain lewat pintu
+      let dc, dr;
+      do { dc = (Math.random() * COLS) | 0; dr = (Math.random() * ROWS) | 0; } while (dc === ag.cx && dr === ag.cy);
+      const path = bfs([ag.cx, ag.cy], [dc, dr]);
+      const wp = [];
+      for (let i = 0; i < path.length - 1; i++) wp.push(doorBetween(path[i], path[i + 1]));
+      wp.push(pickInRoom(dc, dr));
+      ag.queue = wp; ag.destRoom = [dc, dr];
     }
-    return { x: rand(0.6, GW - 0.6), y: rand(0.6, GH - 0.6), work: false };
+    ag.phase = "walk";
   }
 
   /* ---------- Loop ---------- */
@@ -261,47 +301,42 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
 
-    // update agent
     for (const ag of agents) {
       ag.t += dt;
       const st = (window.AGENT_STATE && window.AGENT_STATE[ag.key]) || null;
       ag.alert = !!(st && st.mood === "alert");
       if (ag.phase === "rest") {
-        ag.rest -= dt;
-        ag.bob = Math.sin(ag.t * 4) * 1.5;
-        if (ag.rest <= 0) { ag.phase = "walk"; const t = pickTarget(ag); ag.tx = t.x; ag.ty = t.y; ag.work = t.work; }
+        ag.rest -= dt; ag.dirx = ag.diry = 0;
+        if (ag.rest <= 0) decideNext(ag);
       } else {
-        const dx = ag.tx - ag.x, dy = ag.ty - ag.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < 0.05) {
-          ag.phase = "rest"; ag.rest = ag.work ? rand(2.2, 4.2) : rand(0.4, 1.0); ag.bob = 0;
+        const tgt = ag.queue[0];
+        const dx = tgt.x - ag.x, dy = tgt.y - ag.y, dist = Math.hypot(dx, dy);
+        if (dist < 0.06) {
+          ag.queue.shift();
+          if (!ag.queue.length) { ag.cx = ag.destRoom[0]; ag.cy = ag.destRoom[1]; ag.phase = "rest"; ag.rest = rand(2.0, 4.0); ag.dirx = ag.diry = 0; }
         } else {
-          const sp = ag.speed * (ag.alert ? 1.6 : 1) * dt;
-          ag.x += (dx / dist) * Math.min(sp, dist);
-          ag.y += (dy / dist) * Math.min(sp, dist);
-          ag.bob = Math.abs(Math.sin(ag.t * 11)) * 4;
+          const sp = ag.speed * (ag.alert ? 1.5 : 1) * dt;
+          ag.dirx = dx / dist; ag.diry = dy / dist;
+          ag.x += ag.dirx * Math.min(sp, dist); ag.y += ag.diry * Math.min(sp, dist);
         }
       }
     }
 
-    // render
     ctx.clearRect(0, 0, W, H);
     drawFloor();
-    drawWalls();
+    drawOuterWalls();
 
-    // gabung perabot + agent, urutkan berdasar kedalaman (x+y)
     const items = [];
+    for (const s of wallSegs) items.push({ sum: s.sum, fn: () => drawWallSeg(s) });
     for (const pr of PROPS) items.push({ sum: pr.sum, fn: pr.draw });
-    for (const ag of agents) items.push({ sum: ag.x + ag.y + 0.01, fn: () => drawAgent(ag, ag.alert) });
+    for (const ag of agents) items.push({ sum: ag.x + ag.y + 0.02, fn: () => drawAgent(ag) });
     items.sort((a, b) => a.sum - b.sum);
     for (const it of items) it.fn();
 
-    // posisikan gelembung
     for (const ag of agents) {
       if (!ag.bub) continue;
       const p = project(ag.x, ag.y);
-      const x = p.x, y = p.y - (70 + ag.bob) * zoom;
-      ag.bub.style.transform = `translate(-50%, -100%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      ag.bub.style.transform = `translate(-50%, -100%) translate(${p.x.toFixed(1)}px, ${(p.y - 74 * zoom).toFixed(1)}px)`;
       ag.bub.classList.add("show");
       ag.bub.dataset.mood = ag.alert ? "alert" : "ok";
     }
@@ -309,22 +344,17 @@
     requestAnimationFrame(frame);
   }
 
-  /* ---------- Interaksi: geser & zoom ---------- */
+  /* ---------- Interaksi ---------- */
   let dragging = false, lastPt = null;
   canvas.addEventListener("pointerdown", (e) => { dragging = true; lastPt = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
-  canvas.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    pan.x += e.clientX - lastPt.x; pan.y += e.clientY - lastPt.y;
-    lastPt = { x: e.clientX, y: e.clientY };
-  });
+  canvas.addEventListener("pointermove", (e) => { if (!dragging) return; pan.x += e.clientX - lastPt.x; pan.y += e.clientY - lastPt.y; lastPt = { x: e.clientX, y: e.clientY }; });
   canvas.addEventListener("pointerup", () => { dragging = false; });
   canvas.addEventListener("pointercancel", () => { dragging = false; });
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
-    const before = unproject(e.clientX, e.clientY);
-    zoom = clamp(zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.55, 2.4);
-    pan.x = e.clientX - (before.x - before.y) * HW * zoom;
-    pan.y = e.clientY - (before.x + before.y) * HH * zoom;
+    const b = unproject(e.clientX, e.clientY);
+    zoom = clamp(zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.4);
+    pan.x = e.clientX - (b.x - b.y) * HW * zoom; pan.y = e.clientY - (b.x + b.y) * HH * zoom;
   }, { passive: false });
 
   window.addEventListener("resize", resize);
