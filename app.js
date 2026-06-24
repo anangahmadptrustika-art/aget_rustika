@@ -272,71 +272,119 @@
   })();
 
   /* ================================================================
-     AGENT 3 — Pemantau Status (services: [{ name, url }])
-     URL diisi -> ping nyata. URL null -> simulasi per-layanan.
+     AGENT 3 — Pemantau Status (NYATA: ping HTTP ke web app sungguhan)
+     Melacak status, latensi (kini/avg/min/max), uptime %, jumlah cek,
+     gangguan, riwayat (sparkline), dan waktu cek terakhir.
      ================================================================ */
   (() => {
     const listEl = $("#service-list");
+    const onlineEl = $("#mon-online"), avgEl = $("#mon-avg");
+    const updatedEl = $("#mon-updated"), intervalEl = $("#mon-interval");
+    const interval = POLL.status || 5000;
+    if (intervalEl) intervalEl.textContent = Math.round(interval / 1000);
+
     const defaults = [
       { name: "api.webapp", url: null }, { name: "web-frontend", url: null },
       { name: "database", url: null }, { name: "cdn-assets", url: null },
     ];
     const src = (CFG.services && CFG.services.length) ? CFG.services : defaults;
-    const services = src.map((s) => ({ name: s.name, url: s.url || null, online: true, ping: rand(20, 60), prev: true }));
+    const services = src.map((s) => ({
+      name: s.name, url: s.url || null,
+      online: true, ping: 0, prev: true,
+      checks: 0, up: 0, sum: 0, min: Infinity, max: 0,
+      incidents: 0, lastChange: null, history: [],
+    }));
     const anyReal = services.some((s) => s.url);
+    const HIST = 26;
 
-    function render() {
-      listEl.innerHTML = "";
-      for (const s of services) {
-        const li = document.createElement("li");
-        li.innerHTML =
-          `<span class="status-dot" data-state="${s.online ? "ok" : "bad"}"></span>` +
-          `<span class="name"></span>` +
-          `<span class="ping">${s.online ? s.ping + " ms" : "—"}</span>` +
-          `<span class="tag ${s.online ? "online" : "offline"}">${s.online ? "ONLINE" : "OFFLINE"}</span>`;
-        li.querySelector(".name").textContent = s.name;
-        listEl.appendChild(li);
-      }
-    }
+    const p2 = (n) => String(n).padStart(2, "0");
+    const hms = (d) => `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
 
     async function probe(s) {
       if (s.url) {
         try { s.ping = await pingURL(s.url); s.online = true; }
         catch (e) { s.online = false; }
       } else {
-        if (s.online) {
-          if (Math.random() < 0.06) s.online = false;
-          else s.ping = clamp(s.ping + rand(-12, 14), 8, 240);
-        } else if (Math.random() < 0.4) { s.online = true; s.ping = rand(20, 80); }
+        // tanpa URL -> tetap disimulasikan
+        if (s.online) { if (Math.random() < 0.06) s.online = false; else s.ping = clamp(s.ping + rand(-12, 14), 8, 240); }
+        else if (Math.random() < 0.4) { s.online = true; s.ping = rand(20, 80); }
+        if (s.online && !s.ping) s.ping = rand(20, 80);
+      }
+    }
+
+    function record(s) {
+      s.checks++;
+      if (s.online) { s.up++; s.sum += s.ping; s.min = Math.min(s.min, s.ping); s.max = Math.max(s.max, s.ping); }
+      s.history.push({ ping: s.online ? s.ping : 0, online: s.online });
+      if (s.history.length > HIST) s.history.shift();
+      if (s.online !== s.prev) {
+        s.lastChange = new Date();
+        if (!s.online) { s.incidents++; log(A.status, `${s.name} TIDAK MERESPON — OFFLINE`, true); }
+        else log(A.status, `${s.name} kembali ONLINE (${s.ping} ms) ✔`);
+        s.prev = s.online;
+      }
+    }
+
+    function spark(s) {
+      let maxP = 120;
+      for (const h of s.history) if (h.ping > maxP) maxP = h.ping;
+      return s.history.map((h) => {
+        const ht = h.online ? Math.max(12, Math.round((h.ping / maxP) * 100)) : 100;
+        return `<span class="sb${h.online ? "" : " off"}" style="height:${ht}%"></span>`;
+      }).join("");
+    }
+
+    function render() {
+      listEl.innerHTML = "";
+      let online = 0, avgSum = 0, avgN = 0;
+      for (const s of services) {
+        if (s.online) { online++; avgSum += s.ping; avgN++; }
+        const uptime = s.checks ? (s.up / s.checks) * 100 : 100;
+        const avg = s.up ? Math.round(s.sum / s.up) : 0;
+        const li = document.createElement("li");
+        li.className = "svc";
+        li.innerHTML =
+          `<div class="svc-top"><span class="status-dot" data-state="${s.online ? "ok" : "bad"}"></span>` +
+          `<span class="name"></span>` +
+          `<span class="tag ${s.online ? "online" : "offline"}">${s.online ? "ONLINE" : "OFFLINE"}</span></div>` +
+          `<div class="spark">${spark(s)}</div>` +
+          `<div class="svc-meta"><span>${s.online ? s.ping + " ms" : "tak merespon"}</span>` +
+          `<span>uptime ${uptime.toFixed(uptime >= 99.95 ? 0 : 1)}%</span>` +
+          `<span>avg ${avg || "—"} ms</span>` +
+          (s.incidents ? `<span class="inc">${s.incidents}× gangguan</span>` : "") +
+          `</div>`;
+        li.querySelector(".name").textContent = s.name;
+        listEl.appendChild(li);
+      }
+      if (onlineEl) onlineEl.textContent = `${online}/${services.length} online`;
+      if (avgEl) avgEl.textContent = avgN ? `avg ${Math.round(avgSum / avgN)} ms` : "avg — ms";
+      if (updatedEl) updatedEl.textContent = hms(new Date());
+
+      const anyOffline = online < services.length;
+      setSource("status", anyReal ? "live" : "sim");
+      if (anyOffline) {
+        setAgentMood("status", "alert"); setStatusDot("status", "bad");
+        setBubble("#bubble-status", `${services.length - online} layanan offline!`);
+      } else {
+        setAgentMood("status", "ok"); setStatusDot("status", "ok");
+        setBubble("#bubble-status", "Semua layanan online ✔");
       }
     }
 
     async function step() {
       await Promise.all(services.map(probe));
-      let anyOffline = false;
-      for (const s of services) {
-        if (!s.online) anyOffline = true;
-        if (s.online !== s.prev) {
-          if (s.online) log(A.status, `${s.name} kembali ONLINE (${s.ping} ms) ✔`);
-          else log(A.status, `${s.name} TIDAK MERESPON — OFFLINE`, true);
-          s.prev = s.online;
-        } else if (s.online && s.ping > 180 && Math.random() < 0.3) {
-          log(A.status, `${s.name} latensi tinggi ${s.ping} ms`);
-        }
-      }
+      for (const s of services) record(s);
       render();
-      setSource("status", anyReal ? "live" : "sim");
-      if (anyOffline) {
-        setAgentMood("status", "alert"); setStatusDot("status", "bad");
-        setBubble("#bubble-status", "Ada layanan offline! Cek ulang…");
-      } else {
-        setAgentMood("status", "ok"); setStatusDot("status", "ok");
-        setBubble("#bubble-status", "Semua layanan online ✔");
-        if (Math.random() < 0.25) log(A.status, "Semua layanan merespon normal");
-      }
     }
+
+    const btn = $("#status-refresh");
+    if (btn) btn.addEventListener("click", () => {
+      btn.disabled = true;
+      step().finally(() => { btn.disabled = false; });
+    });
+
     render();
-    runLoop(step, POLL.status || 2800);
+    runLoop(step, interval);
   })();
 
   /* ================================================================
