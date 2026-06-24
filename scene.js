@@ -198,73 +198,98 @@
     { x: 0.5, y: 7.4, draw: () => drawPlant(0.5, 7.4) },
   ].map((p) => ({ ...p, sum: p.x + p.y }));
 
-  /* ---------- Karakter ---------- */
+  /* ---------- Karakter: robot AI ---------- */
+  const OUT = "#3a4670"; // garis tepi navy
+
+  function rrect(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function fs(fill, stroke, lw) {
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+  }
+
   function drawAgent(ag) {
     const p = project(ag.x, ag.y), z = zoom, t = ag.t, moving = ag.phase === "walk", col = ag.color;
+    const lw = Math.max(1.1, 2 * z), lwn = Math.max(0.9, 1.5 * z);
+    const light = shade(col, 1.18), darkc = shade(col, 0.78);
+    const alert = ag.alert;
+
     // bayangan
     ctx.fillStyle = "rgba(30,40,70,0.16)";
-    ctx.beginPath(); ctx.ellipse(p.x, p.y, 15 * z, 6.5 * z, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, 16 * z, 6.5 * z, 0, 0, Math.PI * 2); ctx.fill();
 
-    const bob = (moving ? Math.abs(Math.sin(t * 9)) * 4 : Math.sin(t * 3) * 1.1) * z;
-    const by = p.y - bob;
-    const step = (moving ? Math.sin(t * 9) * 3.5 : 0) * z;
+    const vbob = (moving ? Math.abs(Math.sin(t * 8)) * 3 : Math.sin(t * 2.4) * 1.0) * z;
+    const sway = (moving ? Math.sin(t * 8) * 1.6 : 0) * z;
+    const cx = p.x + sway, FB = p.y - vbob;
+    const stepL = (moving ? Math.sin(t * 8) * 2 : 0) * z, stepR = -stepL;
 
     // kaki
-    ctx.fillStyle = shade(col, 0.5);
-    foot(p.x - 6 * z, by - 1 * z + step, z);
-    foot(p.x + 6 * z, by - 1 * z - step, z);
+    ctx.fillStyle = darkc;
+    rrect(cx - 9 * z, FB - 6 * z + stepL, 7 * z, 6 * z, 2.5 * z); fs(darkc, OUT, lwn);
+    rrect(cx + 2 * z, FB - 6 * z + stepR, 7 * z, 6 * z, 2.5 * z); fs(darkc, OUT, lwn);
 
-    // lengan belakang (kiri)
-    const sw = (moving ? Math.sin(t * 9) * 6 : 0) * z;
-    ctx.fillStyle = shade(col, 0.82);
-    limb(p.x - 17 * z, by - 30 * z + sw, z);
+    // bahu / lengan (panel samping lebih gelap) — di belakang badan
+    rrect(cx - 21 * z, FB - 33 * z, 9 * z, 25 * z, 4 * z); fs(darkc, OUT, lwn);
+    rrect(cx + 12 * z, FB - 33 * z, 9 * z, 25 * z, 4 * z); fs(darkc, OUT, lwn);
 
     // badan
-    const top = by - 48 * z, bot = by - 6 * z, w = 19 * z;
-    const g = ctx.createRadialGradient(p.x - 7 * z, top + 10 * z, 4 * z, p.x, by - 26 * z, 34 * z);
-    g.addColorStop(0, shade(col, 1.28)); g.addColorStop(0.55, col); g.addColorStop(1, shade(col, 0.68));
-    ctx.fillStyle = g; body(p.x, top, bot, w);
-    if (ag.alert) { ctx.strokeStyle = "#e5484d"; ctx.lineWidth = 2.5 * z; ctx.stroke(); }
+    rrect(cx - 17 * z, FB - 35 * z, 34 * z, 30 * z, 8 * z);
+    const bg = ctx.createLinearGradient(cx - 17 * z, 0, cx + 17 * z, 0);
+    bg.addColorStop(0, darkc); bg.addColorStop(0.45, col); bg.addColorStop(1, light);
+    fs(bg, alert ? "#e5484d" : OUT, alert ? Math.max(1.6, 2.4 * z) : lw);
+    // tulisan "Ai"
+    ctx.fillStyle = OUT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `800 ${13 * z}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText("Ai", cx, FB - 18 * z);
 
-    // lengan depan (kanan)
-    ctx.fillStyle = shade(col, 1.0);
-    limb(p.x + 17 * z, by - 30 * z - sw, z);
+    // leher
+    rrect(cx - 6 * z, FB - 41 * z, 12 * z, 8 * z, 2 * z); fs(darkc, OUT, lwn);
+
+    // kuping
+    rrect(cx - 27 * z, FB - 62 * z, 8 * z, 16 * z, 3 * z); fs(darkc, OUT, lwn);
+    rrect(cx + 19 * z, FB - 62 * z, 8 * z, 16 * z, 3 * z); fs(darkc, OUT, lwn);
 
     // kepala
-    const hy = by - 56 * z, hr = 13.5 * z;
-    const hg = ctx.createRadialGradient(p.x - 5 * z, hy - 5 * z, 2 * z, p.x, hy, hr * 1.4);
-    hg.addColorStop(0, shade(col, 1.3)); hg.addColorStop(1, shade(col, 0.82));
-    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(p.x, hy, hr, 0, Math.PI * 2); ctx.fill();
+    rrect(cx - 22 * z, FB - 70 * z, 44 * z, 30 * z, 11 * z);
+    const hg = ctx.createLinearGradient(0, FB - 70 * z, 0, FB - 40 * z);
+    hg.addColorStop(0, shade(col, 1.26)); hg.addColorStop(1, light);
+    fs(hg, OUT, lw);
 
-    // wajah (arah pandang sedikit mengikuti gerak)
-    const ed = clamp((ag.dirx - ag.diry), -1, 1) * 2.2 * z;
-    // mata putih + pupil
-    eye(p.x - 5 * z + ed, hy - 1 * z, z, ag.alert);
-    eye(p.x + 5 * z + ed, hy - 1 * z, z, ag.alert);
-    // mulut senyum
-    ctx.strokeStyle = "rgba(20,30,55,0.6)"; ctx.lineWidth = 1.4 * z;
-    ctx.beginPath(); ctx.arc(p.x + ed * 0.5, hy + 5 * z, 3.2 * z, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+    // layar wajah
+    rrect(cx - 17 * z, FB - 67 * z, 34 * z, 19 * z, 6 * z); fs("#e8edfb", OUT, lwn);
 
-    // antena
-    ctx.strokeStyle = "#9aa6c8"; ctx.lineWidth = 1.6 * z;
-    ctx.beginPath(); ctx.moveTo(p.x, hy - hr); ctx.lineTo(p.x, hy - hr - 9 * z); ctx.stroke();
-    ctx.fillStyle = ag.alert ? "#e5484d" : "#6ee7ff";
-    ctx.beginPath(); ctx.arc(p.x, hy - hr - 11 * z, 3 * z, 0, Math.PI * 2); ctx.fill();
-  }
-  function body(cx, top, bot, w) {
-    const r = w;
-    ctx.beginPath();
-    ctx.moveTo(cx - w, top + r);
-    ctx.arc(cx, top + r, w, Math.PI, 0);
-    ctx.bezierCurveTo(cx + w * 1.05, bot - r * 0.9, cx + w * 0.85, bot, cx, bot);
-    ctx.bezierCurveTo(cx - w * 0.85, bot, cx - w * 1.05, bot - r * 0.9, cx - w, top + r);
-    ctx.closePath(); ctx.fill();
-  }
-  function limb(x, y, z) { ctx.beginPath(); ctx.ellipse(x, y, 5.5 * z, 9 * z, 0, 0, Math.PI * 2); ctx.fill(); }
-  function foot(x, y, z) { ctx.beginPath(); ctx.ellipse(x, y, 6.5 * z, 4 * z, 0, 0, Math.PI * 2); ctx.fill(); }
-  function eye(x, y, z, alert) {
-    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(x, y, 3.4 * z, 4 * z, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = alert ? "#e5484d" : "#1a2238"; ctx.beginPath(); ctx.arc(x, y + 0.6 * z, 1.9 * z, 0, Math.PI * 2); ctx.fill();
+    // mata (lirik mengikuti arah gerak)
+    const ed = clamp((ag.dirx - ag.diry), -1, 1) * 1.8 * z;
+    const ey = FB - 57.5 * z;
+    for (const ex of [cx - 8 * z, cx + 8 * z]) {
+      ctx.beginPath(); ctx.arc(ex, ey, 5.4 * z, 0, Math.PI * 2);
+      fs("#ffffff", alert ? "#e5484d" : OUT, lwn);
+      ctx.fillStyle = alert ? "#e5484d" : OUT;
+      ctx.beginPath(); ctx.arc(ex + ed, ey + 0.4 * z, 2.4 * z, 0, Math.PI * 2); ctx.fill();
+    }
+    // mulut / speaker
+    rrect(cx - 4.5 * z, FB - 45 * z, 9 * z, 3 * z, 1.5 * z); fs(OUT, null, 0);
+
+    // antena atas (ring)
+    ctx.strokeStyle = OUT; ctx.lineWidth = lwn;
+    ctx.beginPath(); ctx.moveTo(cx, FB - 70 * z); ctx.lineTo(cx, FB - 77 * z); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, FB - 80 * z, 3.4 * z, 0, Math.PI * 2);
+    fs(alert ? "#e5484d" : "#ffffff", OUT, lwn);
+
+    // antena samping melengkung + bola (ciri khas)
+    ctx.strokeStyle = OUT; ctx.lineWidth = lwn;
+    ctx.beginPath(); ctx.moveTo(cx - 22 * z, FB - 55 * z);
+    ctx.quadraticCurveTo(cx - 31 * z, FB - 55 * z, cx - 31 * z, FB - 47 * z); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx - 31 * z, FB - 44 * z, 3 * z, 0, Math.PI * 2);
+    fs(light, OUT, lwn);
   }
 
   /* ---------- State agent ---------- */
@@ -336,7 +361,7 @@
     for (const ag of agents) {
       if (!ag.bub) continue;
       const p = project(ag.x, ag.y);
-      ag.bub.style.transform = `translate(-50%, -100%) translate(${p.x.toFixed(1)}px, ${(p.y - 74 * zoom).toFixed(1)}px)`;
+      ag.bub.style.transform = `translate(-50%, -100%) translate(${p.x.toFixed(1)}px, ${(p.y - 92 * zoom).toFixed(1)}px)`;
       ag.bub.classList.add("show");
       ag.bub.dataset.mood = ag.alert ? "alert" : "ok";
     }
