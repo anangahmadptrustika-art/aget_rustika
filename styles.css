@@ -27,10 +27,12 @@ body {
 
 #webgl-fallback {
   position: fixed; inset: 0; z-index: 5;
-  display: flex; align-items: center; justify-content: center;
+  align-items: center; justify-content: center;
   text-align: center; color: var(--ink); padding: 24px;
   background: linear-gradient(180deg, #dfe8fb, #f6f4ff);
 }
+/* tampil HANYA saat tidak ber-atribut hidden (agar atribut hidden tetap berfungsi) */
+#webgl-fallback:not([hidden]) { display: flex; }
 #webgl-fallback .fb-card {
   max-width: 440px;
   padding: 26px 28px;
