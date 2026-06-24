@@ -90,6 +90,19 @@ endpoints: {
 Selang polling tiap agent dan timeout fetch juga bisa diatur di `config.js`
 (`pollIntervalMs`, `fetchTimeoutMs`).
 
+## Data NYATA per app via `/api/status`
+
+Pemantau Status sudah **nyata** (ping online/offline + latensi). Untuk data lebih
+dalam (versi yang ter-deploy, region, memori, uptime), tambahkan endpoint JSON di
+tiap app Vercel kamu:
+
+1. Salin `contoh-endpoint/api/status.js` ke app kamu pada path `api/status.js`, deploy ulang.
+2. Di `config.js`, isi `api` untuk app itu: `api: "https://<app>.vercel.app/api/status"`.
+3. Dashboard otomatis menampilkan badge **API** + data nyata app tsb.
+
+Selama `api` belum diisi/endpoint belum ada, dashboard tetap jalan dengan cek ping
+biasa. Panduan lengkap (termasuk Next.js) ada di `contoh-endpoint/README.md`.
+
 ## Struktur
 
 ```

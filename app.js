@@ -289,27 +289,38 @@
     ];
     const src = (CFG.services && CFG.services.length) ? CFG.services : defaults;
     const services = src.map((s) => ({
-      name: s.name, url: s.url || null,
-      online: true, ping: 0, prev: true,
+      name: s.name, url: s.url || null, api: s.api || null,
+      online: true, ping: 0, prev: true, live: false, meta: null,
       checks: 0, up: 0, sum: 0, min: Infinity, max: 0,
       incidents: 0, lastChange: null, history: [],
     }));
-    const anyReal = services.some((s) => s.url);
+    const anyReal = services.some((s) => s.url || s.api);
     const HIST = 26;
 
     const p2 = (n) => String(n).padStart(2, "0");
     const hms = (d) => `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
 
     async function probe(s) {
-      if (s.url) {
-        try { s.ping = await pingURL(s.url); s.online = true; }
-        catch (e) { s.online = false; }
-      } else {
-        // tanpa URL -> tetap disimulasikan
-        if (s.online) { if (Math.random() < 0.06) s.online = false; else s.ping = clamp(s.ping + rand(-12, 14), 8, 240); }
-        else if (Math.random() < 0.4) { s.online = true; s.ping = rand(20, 80); }
-        if (s.online && !s.ping) s.ping = rand(20, 80);
+      // 1) Endpoint JSON /api/status -> data NYATA + latensi terukur
+      if (s.api) {
+        try {
+          const t0 = performance.now();
+          const d = await fetchJSON(s.api);
+          s.ping = Math.round(performance.now() - t0);
+          s.online = true; s.live = true; s.meta = d;
+          return;
+        } catch (e) { s.live = false; s.meta = null; /* fallback ke ping */ }
       }
+      // 2) Ping reachability (no-cors)
+      if (s.url) {
+        try { s.ping = await pingURL(s.url); s.online = true; s.live = false; }
+        catch (e) { s.online = false; }
+        return;
+      }
+      // 3) Tanpa url/api -> disimulasikan
+      if (s.online) { if (Math.random() < 0.06) s.online = false; else s.ping = clamp(s.ping + rand(-12, 14), 8, 240); }
+      else if (Math.random() < 0.4) { s.online = true; s.ping = rand(20, 80); }
+      if (s.online && !s.ping) s.ping = rand(20, 80);
     }
 
     function record(s) {
@@ -341,13 +352,25 @@
         if (s.online) { online++; avgSum += s.ping; avgN++; }
         const uptime = s.checks ? (s.up / s.checks) * 100 : 100;
         const avg = s.up ? Math.round(s.sum / s.up) : 0;
+        const esc = (v) => String(v == null ? "" : v).replace(/[<>&]/g, "");
+        const m = s.meta;
+        const apiLine = m
+          ? `<div class="svc-api">${[
+              (m.commit || m.version) ? `ver ${esc(m.commit || m.version)}` : null,
+              m.region ? esc(m.region) : null,
+              (m.memoryMB != null) ? `${esc(m.memoryMB)} MB` : null,
+              (m.uptimeSec != null) ? `up ${esc(m.uptimeSec)}s` : null,
+            ].filter(Boolean).join(" · ")}</div>`
+          : "";
         const li = document.createElement("li");
         li.className = "svc";
         li.innerHTML =
           `<div class="svc-top"><span class="status-dot" data-state="${s.online ? "ok" : "bad"}"></span>` +
           `<span class="name"></span>` +
+          (s.live ? `<span class="apitag">API</span>` : "") +
           `<span class="tag ${s.online ? "online" : "offline"}">${s.online ? "ONLINE" : "OFFLINE"}</span></div>` +
           `<div class="spark">${spark(s)}</div>` +
+          apiLine +
           `<div class="svc-meta"><span>${s.online ? s.ping + " ms" : "tak merespon"}</span>` +
           `<span>uptime ${uptime.toFixed(uptime >= 99.95 ? 0 : 1)}%</span>` +
           `<span>avg ${avg || "—"} ms</span>` +

@@ -135,6 +135,8 @@ body {
 .svc-top .tag { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 12px; }
 .svc-top .tag.online  { color: var(--ok);  background: rgba(31,184,119,0.14); }
 .svc-top .tag.offline { color: var(--bad); background: rgba(229,72,77,0.14); }
+.svc-top .apitag { font-size: 8px; font-weight: 800; letter-spacing: .4px; padding: 2px 6px; border-radius: 10px; color: var(--accent); background: rgba(91,124,255,0.16); }
+.svc-api { font-size: 10px; color: var(--accent); font-variant-numeric: tabular-nums; margin: 1px 0 3px; }
 .spark { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin: 7px 0 5px; }
 .spark .sb { flex: 1; min-width: 2px; background: linear-gradient(180deg,#7eead0,#1fb877); border-radius: 1.5px; opacity: .9; }
 .spark .sb.off { background: #e5484d; opacity: 1; }

@@ -13,17 +13,24 @@
 window.AGENT_CONFIG = {
 
   /* --------------------------------------------------------------
-     1) PEMANTAU STATUS (online/offline)
-     Cek reachability tiap web app pakai fetch(no-cors).
-     Cukup isi { name, url }. Tidak butuh CORS / endpoint khusus —
-     selama situsnya bisa diakses, dianggap ONLINE + diukur ping-nya.
-     Kosongkan "url" kalau mau layanan itu disimulasikan saja.
+     1) PEMANTAU STATUS (online/offline) — NYATA
+     - "url"  : alamat app. Dicek pakai fetch(no-cors); selama bisa
+                diakses -> ONLINE + diukur ping. Tidak butuh apa pun.
+     - "api"  : (opsional) URL endpoint JSON /api/status milik app.
+                Jika diisi & aktif, dashboard menampilkan data NYATA
+                (versi, region, memori, dll). Lihat folder
+                contoh-endpoint/ untuk cara memasangnya. Bila kosong
+                / belum ada, otomatis pakai cek ping biasa.
      -------------------------------------------------------------- */
   services: [
-    { name: "Kwitansi Rustika", url: "https://kwitansi-rustika.vercel.app/" },
-    { name: "AI Agen",          url: "https://ai-agen-1t5u.vercel.app/" },
-    { name: "Rustika Client",   url: "https://rustika-client.vercel.app/" },
-    { name: "Laporan BBG",      url: "https://laporan-bbg.vercel.app/" },
+    { name: "Kwitansi Rustika", url: "https://kwitansi-rustika.vercel.app/",
+      api: null /* "https://kwitansi-rustika.vercel.app/api/status" */ },
+    { name: "AI Agen",          url: "https://ai-agen-1t5u.vercel.app/",
+      api: null /* "https://ai-agen-1t5u.vercel.app/api/status" */ },
+    { name: "Rustika Client",   url: "https://rustika-client.vercel.app/",
+      api: null /* "https://rustika-client.vercel.app/api/status" */ },
+    { name: "Laporan BBG",      url: "https://laporan-bbg.vercel.app/",
+      api: null /* "https://laporan-bbg.vercel.app/api/status" */ },
   ],
 
   /* --------------------------------------------------------------
