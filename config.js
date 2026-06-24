@@ -24,11 +24,11 @@ window.AGENT_CONFIG = {
      -------------------------------------------------------------- */
   services: [
     { name: "Kwitansi Rustika", url: "https://kwitansi-rustika.vercel.app/",
-      api: null /* "https://kwitansi-rustika.vercel.app/api/status" */ },
+      api: "https://kwitansi-rustika.vercel.app/api/status" },
     { name: "AI Agen",          url: "https://ai-agen-1t5u.vercel.app/",
-      api: null /* "https://ai-agen-1t5u.vercel.app/api/status" */ },
+      api: "https://ai-agen-1t5u.vercel.app/api/status" },
     { name: "Rustika Client",   url: "https://rustika-client.vercel.app/",
-      api: null /* "https://rustika-client.vercel.app/api/status" */ },
+      api: "https://rustika-client.vercel.app/api/status" },
     { name: "Laporan BBG",      url: "https://laporan-bbg.vercel.app/",
       api: null /* "https://laporan-bbg.vercel.app/api/status" */ },
   ],

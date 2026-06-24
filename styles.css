@@ -125,7 +125,26 @@ body {
 .mon-summary #status-refresh { margin-left: auto; font: inherit; font-size: 11px; color: var(--ink); background: rgba(91,124,255,0.12); border: 1px solid var(--line); border-radius: 8px; padding: 3px 11px; cursor: pointer; }
 .mon-summary #status-refresh:hover { background: rgba(91,124,255,0.22); }
 .mon-summary #status-refresh:disabled { opacity: .5; cursor: default; }
+.mon-summary #api-editor-toggle { font: inherit; font-size: 11px; color: var(--ink); background: rgba(91,124,255,0.12); border: 1px solid var(--line); border-radius: 8px; padding: 3px 11px; cursor: pointer; }
+.mon-summary #api-editor-toggle:hover { background: rgba(91,124,255,0.22); }
+.mon-summary #api-editor-toggle.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .mon-foot { font-size: 10px; color: var(--muted); margin-top: 7px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Editor URL API per app */
+.api-editor { margin: 4px 0 9px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(91,124,255,0.05); display: grid; gap: 8px; }
+.api-editor .ed-rows { display: grid; gap: 6px; }
+.api-editor .ed-row { display: flex; align-items: center; gap: 7px; }
+.api-editor .ed-name { flex: 0 0 34%; font-size: 11px; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.api-editor input { flex: 1 1 auto; min-width: 0; font: inherit; font-size: 11px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 4px 8px; }
+.api-editor input:focus { outline: none; border-color: var(--accent); }
+.api-editor .ed-del { flex: 0 0 auto; font: inherit; font-size: 11px; line-height: 1; color: var(--bad); background: rgba(229,72,77,0.12); border: 1px solid var(--line); border-radius: 7px; padding: 4px 7px; cursor: pointer; }
+.api-editor .ed-add { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.api-editor .ed-add input { flex: 1 1 120px; }
+.api-editor .ed-add #ed-add-btn,
+.api-editor #ed-save { font: inherit; font-size: 11px; font-weight: 700; color: #fff; background: var(--accent); border: none; border-radius: 7px; padding: 5px 12px; cursor: pointer; }
+.api-editor .ed-add #ed-add-btn { background: rgba(91,124,255,0.18); color: var(--ink); }
+.api-editor .ed-actions { display: flex; align-items: center; gap: 10px; }
+.api-editor .ed-hint { font-size: 10px; color: var(--muted); }
 
 .service-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
 .service-list li.svc { display: block; padding: 8px 10px; background: rgba(255,255,255,0.6); border: 1px solid var(--line); border-radius: 10px; }

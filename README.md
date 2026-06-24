@@ -103,6 +103,11 @@ tiap app Vercel kamu:
 Selama `api` belum diisi/endpoint belum ada, dashboard tetap jalan dengan cek ping
 biasa. Panduan lengkap (termasuk Next.js) ada di `contoh-endpoint/README.md`.
 
+**Tanpa edit kode:** klik tombol **⚙ API** di panel "Status Layanan". Di situ kamu
+bisa mengisi/mengubah URL `/api/status` tiap app, atau menambah app baru (nama + url
++ api), lalu **Simpan**. Pengaturan tersimpan di browser (localStorage) dan langsung
+dipakai. Mengosongkan kolom API = kembali ke cek ping biasa.
+
 ## Struktur
 
 ```

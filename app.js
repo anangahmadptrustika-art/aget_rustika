@@ -287,14 +287,31 @@
       { name: "api.webapp", url: null }, { name: "web-frontend", url: null },
       { name: "database", url: null }, { name: "cdn-assets", url: null },
     ];
-    const src = (CFG.services && CFG.services.length) ? CFG.services : defaults;
-    const services = src.map((s) => ({
-      name: s.name, url: s.url || null, api: s.api || null,
-      online: true, ping: 0, prev: true, live: false, meta: null,
-      checks: 0, up: 0, sum: 0, min: Infinity, max: 0,
-      incidents: 0, lastChange: null, history: [],
-    }));
-    const anyReal = services.some((s) => s.url || s.api);
+    // Penyimpanan lokal (browser) untuk URL API & app tambahan
+    const LS_OVR = "rustika.apiOverrides.v1";   // { "Nama App": "url-api" }
+    const LS_EXTRA = "rustika.extraServices.v1"; // [ { name, url, api } ]
+    const loadJSON = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch (e) { return def; } };
+    const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+    function buildServices() {
+      const overrides = loadJSON(LS_OVR, {});
+      const extras = loadJSON(LS_EXTRA, []);
+      const base = (CFG.services && CFG.services.length) ? CFG.services : defaults;
+      const merged = base.concat(Array.isArray(extras) ? extras : []);
+      const extraNames = new Set((Array.isArray(extras) ? extras : []).map((e) => e.name));
+      return merged.map((s) => ({
+        name: s.name,
+        url: s.url || null,
+        api: Object.prototype.hasOwnProperty.call(overrides, s.name) ? (overrides[s.name] || null) : (s.api || null),
+        isExtra: extraNames.has(s.name),
+        online: true, ping: 0, prev: true, live: false, meta: null,
+        checks: 0, up: 0, sum: 0, min: Infinity, max: 0,
+        incidents: 0, lastChange: null, history: [],
+      }));
+    }
+
+    let services = buildServices();
+    let anyReal = services.some((s) => s.url || s.api);
     const HIST = 26;
 
     const p2 = (n) => String(n).padStart(2, "0");
@@ -405,6 +422,78 @@
       btn.disabled = true;
       step().finally(() => { btn.disabled = false; });
     });
+
+    /* ---- Editor URL API per app (disimpan di browser) ---- */
+    function rebuild() {
+      services = buildServices();
+      anyReal = services.some((s) => s.url || s.api);
+      renderEditor();
+      render();
+      step();
+    }
+
+    function renderEditor() {
+      const rows = $("#ed-rows");
+      if (!rows) return;
+      rows.innerHTML = "";
+      for (const s of services) {
+        const row = document.createElement("div");
+        row.className = "ed-row";
+        const lab = document.createElement("span");
+        lab.className = "ed-name"; lab.textContent = s.name;
+        const inp = document.createElement("input");
+        inp.type = "url"; inp.placeholder = "(kosong = cek ping biasa)";
+        inp.value = s.api || ""; inp.dataset.name = s.name;
+        row.appendChild(lab); row.appendChild(inp);
+        if (s.isExtra) {
+          const del = document.createElement("button");
+          del.type = "button"; del.className = "ed-del"; del.textContent = "✕";
+          del.title = "Hapus app ini";
+          del.addEventListener("click", () => removeExtra(s.name));
+          row.appendChild(del);
+        }
+        rows.appendChild(row);
+      }
+    }
+
+    function saveEditor() {
+      const overrides = loadJSON(LS_OVR, {});
+      const rows = $("#ed-rows");
+      if (rows) rows.querySelectorAll("input[data-name]").forEach((inp) => {
+        overrides[inp.dataset.name] = inp.value.trim();
+      });
+      saveJSON(LS_OVR, overrides);
+      rebuild();
+      log(A.status, "Pengaturan API disimpan ✔");
+    }
+
+    function addExtra() {
+      const nameEl = $("#ed-new-name"), urlEl = $("#ed-new-url"), apiEl = $("#ed-new-api");
+      const name = (nameEl.value || "").trim();
+      if (!name) { nameEl.focus(); return; }
+      const extras = loadJSON(LS_EXTRA, []);
+      extras.push({ name, url: (urlEl.value || "").trim() || null, api: (apiEl.value || "").trim() || null });
+      saveJSON(LS_EXTRA, extras);
+      nameEl.value = urlEl.value = apiEl.value = "";
+      rebuild();
+    }
+
+    function removeExtra(name) {
+      const extras = loadJSON(LS_EXTRA, []).filter((e) => e.name !== name);
+      saveJSON(LS_EXTRA, extras);
+      const ovr = loadJSON(LS_OVR, {}); delete ovr[name]; saveJSON(LS_OVR, ovr);
+      rebuild();
+    }
+
+    const edBtn = $("#api-editor-toggle"), edBox = $("#api-editor");
+    if (edBtn && edBox) edBtn.addEventListener("click", () => {
+      const show = edBox.hidden;
+      edBox.hidden = !show;
+      edBtn.classList.toggle("on", show);
+      if (show) renderEditor();
+    });
+    const saveBtn = $("#ed-save"); if (saveBtn) saveBtn.addEventListener("click", saveEditor);
+    const addBtn = $("#ed-add-btn"); if (addBtn) addBtn.addEventListener("click", addExtra);
 
     render();
     runLoop(step, interval);

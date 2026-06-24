@@ -44,8 +44,25 @@
         <span id="mon-online">0/0 online</span>
         <span id="mon-avg">avg — ms</span>
         <button id="status-refresh" type="button">↻ Cek</button>
+        <button id="api-editor-toggle" type="button">⚙ API</button>
       </div>
       <ul class="service-list" id="service-list"></ul>
+
+      <!-- Editor URL API per app (disimpan di browser) -->
+      <div class="api-editor" id="api-editor" hidden>
+        <div class="ed-rows" id="ed-rows"></div>
+        <div class="ed-add">
+          <input id="ed-new-name" type="text" placeholder="Nama app baru">
+          <input id="ed-new-url" type="url" placeholder="https://app.vercel.app/">
+          <input id="ed-new-api" type="url" placeholder="https://app.vercel.app/api/status">
+          <button id="ed-add-btn" type="button">+ Tambah app</button>
+        </div>
+        <div class="ed-actions">
+          <button id="ed-save" type="button">Simpan</button>
+          <span class="ed-hint">Tersimpan di browser ini. Kosongkan kolom API = pakai cek ping biasa.</span>
+        </div>
+      </div>
+
       <div class="mon-foot">Cek nyata tiap <span id="mon-interval">—</span>s · diperbarui <span id="mon-updated">—</span></div>
     </section>
 
