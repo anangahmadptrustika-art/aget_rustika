@@ -6,26 +6,14 @@
   <title>Rustika · Ops Center 3D</title>
   <meta name="description" content="Kantor 3D para agent AI: berjalan menjaga server, cek update, pantau online/offline, backup, keamanan, dan cache." />
   <link rel="stylesheet" href="styles.css" />
-
-  <!-- Three.js via CDN + import map (berjalan di browser, aman untuk static hosting) -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
 </head>
 <body>
   <!-- Panggung 3D (canvas Three.js dipasang ke sini) -->
   <div id="stage"></div>
   <div id="webgl-fallback" hidden>
     <div class="fb-card">
-      <h2>Mode 3D belum aktif 🖥️</h2>
-      <p>Browser belum bisa memakai <b>WebGL</b> (akselerasi grafis). Data &amp; monitoring di panel kanan tetap berjalan normal.</p>
-      <p class="fb-tip"><b>Aktifkan di Edge / Chrome:</b><br>
-        Settings → <i>System and performance</i> → nyalakan <b>“Use hardware acceleration when available”</b> → tutup &amp; buka ulang browser.</p>
+      <h2>Tidak bisa menggambar scene 😕</h2>
+      <p>Browser tidak mendukung Canvas 2D. Data &amp; monitoring di panel kanan tetap berjalan normal.</p>
       <button type="button" onclick="location.reload()">↻ Muat ulang</button>
     </div>
   </div>
@@ -46,7 +34,7 @@
     <div class="meta"><span id="clock">--:--:--</span> &nbsp;·&nbsp; Uptime <span id="uptime">0d 00:00:00</span></div>
   </header>
 
-  <div class="hint">🖱️ Seret untuk memutar · scroll untuk zoom</div>
+  <div class="hint">🖱️ Seret untuk menggeser · scroll untuk zoom</div>
 
   <aside class="panel">
     <!-- Status layanan (agent: Pemantau Status) -->
@@ -107,6 +95,6 @@
 
   <script src="config.js"></script>
   <script src="app.js"></script>
-  <script type="module" src="scene.js"></script>
+  <script src="scene.js"></script>
 </body>
 </html>
